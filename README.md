@@ -26,76 +26,20 @@ RoboQA-Temporal is an open-source, professional Python toolkit focused on automa
 - **Configuration Support**: YAML-based configuration files for flexible parameter tuning
 - **Visualization**: Interactive plots and charts in HTML reports
 
-
-## Anomaly Detection Methods
-
-### 1. Density Drop Detection
-
-Detects sudden drops in point density that may indicate:
-- Sensor occlusions
-- Hardware faults
-- Environmental changes
-
-**Algorithm**: Moving average with z-score analysis
-
-### 2. Spatial Discontinuity Detection
-
-Analyzes geometric changes and frame-to-frame transformations to identify:
-- Irregular motion
-- Environmental shifts
-- Sensor misalignment
-
-**Algorithm**: Centroid translation, bounding box changes, and nearest neighbor distances
-
-### 3. Ghost Point Detection
-
-Identifies points likely due to:
-- Reflections
-- Multi-path returns
-- Hardware artifacts
-
-**Algorithm**: Statistical outlier detection (elliptic envelope) and distance-based heuristics
-
-### 4. Temporal Consistency Detection
-
-Quantifies smoothness and consistency in spatio-temporal evolution:
-- Point count changes
-- Centroid velocity
-- Bounding box changes
-- Acceleration analysis
-
-**Algorithm**: Frame-to-frame difference metrics and second-order derivatives
-
-## Output Reports
-
-### Markdown Report
-
-Human-readable markdown report with:
-- Executive summary
-- Health metrics
-- Detected anomalies
-- Frame statistics
-
-### HTML Report
-
-Interactive HTML report with:
-- All markdown content
-- Visualizations (point count over time, severity distributions)
-- Color-coded severity indicators
-- Embedded plots
-
-### CSV Export
-
-Structured CSV file with:
-- All detected anomalies
-- Frame-by-frame statistics
-- Metadata for each anomaly
-
 ## Development
+
+### User Stories:
+> User Stories for this project can be found here - [USER_STORIES.md](.docs/USER_STORIES.md)
+
+### User Design:
+> User Desigs for this project can be found here - [USER_STORIES.md](.docs/USER_DESIGN.md)
+
+### User Components:
+> User Components for this project can be found here - [USER_STORIES.md](.docs/USER_COMPONENTS.md)
 
 ### Contributing
 
-Contributions are welcome! Please checkout instructions for contributing here - [CONTRIBUTING](CONTRIBUTING.md)
+> Contributions are welcome! Please checkout instructions for contributing here - [CONTRIBUTING](CONTRIBUTING.md)
 
 ## License
 
