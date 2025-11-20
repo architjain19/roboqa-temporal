@@ -12,10 +12,10 @@ RoboQA-Temporal is an open-source, professional Python toolkit focused on automa
 > User Stories for this project can be found here - [USER_STORIES.md](.docs/USER_STORIES.md)
 
 ### User Design:
-> User Desigs for this project can be found here - [USER_STORIES.md](.docs/USER_DESIGN.md)
+> User Desigs for this project can be found here - [USER_DESIGN.md](.docs/USER_DESIGN.md)
 
 ### User Components:
-> User Components for this project can be found here - [USER_STORIES.md](.docs/USER_COMPONENTS.md)
+> User Components for this project can be found here - [USER_COMPONENTS.md](.docs/USER_COMPONENTS.md)
 
 ## Installation
 
