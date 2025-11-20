@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.egg-info/
+
+# Virtual environments
+venv/
+
+# IDE
+.vscode/
+
+# Reports
+reports/
+
+# ROS2
+*.db3
+*.bag
+
+# Datasets
+dataset/
