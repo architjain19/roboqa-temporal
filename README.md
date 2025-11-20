@@ -4,6 +4,8 @@
 
 RoboQA-Temporal is an open-source, professional Python toolkit focused on automated quality assessment and anomaly detection for multi-sensor robotics datasets, with a special focus on ROS2 bag files. It provides automated, objective, and reproducible health checks for robotics datasets used in ML, SLAM, and perception workflows.
 
+![RoboQA-Logo](.docs/roboqa_logo.png)
+
 ## Features
 
 ### Core Capabilities
