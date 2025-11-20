@@ -54,7 +54,7 @@ pip install -e .
 - `tqdm` >= 4.62.0
 - `tabulate` >= 0.9.0
 
-## Quick Start
+<!-- ## Quick Start
 
 ### Usage
 
@@ -122,7 +122,7 @@ output: all
 output_dir: reports
 ```
 
-See `examples/config_example.yaml` for a complete configuration example.
+See `examples/config_example.yaml` for a complete configuration example. -->
 
 ## Project Structure
 
