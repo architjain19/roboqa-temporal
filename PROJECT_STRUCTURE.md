@@ -28,6 +28,15 @@ roboqa-temporal/
 │   │   └── main.py           # CLI entry point
 │   └── config/               # Configuration utilities
 │       └── __init__.py
+├── benchmarks/               # benchmarking tools
+│   ├── benchmark.py          # Runs full benchmark across datasets; outputs CSV
+│   └── config.py             # Stores dataset paths & experiment parameters
+│   ├── drift_experiments.py  # Injects artificial drift & jitter into timestamps
+│   └── plotting.py           # Plots TFQS vs drift, anomaly histograms, dataset comparisons
+│   └── utils.py              # Helper utilities shared across benchmark scripts
+├── results/                  # All generated outputs from benchmarking
+│   └── benchmarks/           # Folder storing all CSV benchmark runs
+│       └── *.csv             # One CSV per benchmark run (raw results)
 ├── tests/                    # Unit tests
 │   ├── __init__.py
 │   ├── test_preprocessing.py
