@@ -24,12 +24,38 @@ RoboQA-Temporal is an open-source, professional Python toolkit focused on automa
 - Python 3.10 or higher
 - ROS2 (for ROS2 bag file support) (Distro - Humble)
 
+The following ROS packages are provided by your ROS 2 installation (APT) and should NOT be listed in pyproject dependencies. Install on Debian/Ubuntu with ROS 2 Humble:
+
+```bash
+sudo apt update
+sudo apt install ros-humble-rclpy ros-humble-rosbag2 ros-humble-sensor-msgs
+```
+
+Source ROS 2 environment before running code or tests that import ROS python modules:
+
+```bash
+source /opt/ros/humble/setup.bash
+```
+
+Notes:
+- Use the system Python (or add /opt/ros/.../dist-packages to PYTHONPATH) if running inside a venv.
+- The project can be installed in editable mode without ROS deps; ROS packages must be installed via apt as shown above.
+
 ### Install from Source
 
 ```bash
 # Clone the repository
 git clone https://github.com/architjain19/roboqa-temporal.git
 cd roboqa-temporal
+
+# Create a virtual environment:
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate`
+
+# 5. Source ROS
+source /opt/ros/humble/setup.bash
 
 # Install dependencies
 pip install -r requirements.txt

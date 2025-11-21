@@ -1,0 +1,64 @@
+################################################################
+
+# File: examples/config_example.yaml
+# Created: 2025-11-20
+# Created by: Archit Jain (architj@uw.edu)
+# Last Modified: 2025-11-20
+# Last Modified by: Archit Jain (architj@uw.edu)
+
+#################################################################
+
+# Copyright: RoboQA-Temporal Authors
+# License: MIT License
+
+################################################################
+
+# RoboQA-Temporal Configuration Example
+# This file demonstrates available configuration options
+
+################################################################
+
+# Topics to analyze (leave empty or null to auto-detect)
+topics:
+  - /velodyne_points
+  - /lidar/points
+
+# Maximum number of frames to process (null = all)
+max_frames: null
+
+# Preprocessing options
+preprocessing:
+  # Voxel size for downsampling (null = no downsampling)
+  voxel_size: 0.05
+  
+  # Remove outliers
+  remove_outliers: true
+  
+  # Outlier removal method: 'statistical', 'radius', or 'lof'
+  outlier_method: statistical
+  
+  # Outlier removal parameters
+  outlier_params:
+    nb_neighbors: 20
+    std_ratio: 2.0
+
+# Detection options
+detection:
+  # Global threshold for anomaly detection (0.0 to 1.0)
+  threshold: 0.5
+  
+  # Disable specific detectors
+  disabled: []
+  
+  # Detector-specific thresholds (optional, overrides global threshold)
+  density_threshold: 0.5
+  spatial_threshold: 0.3
+  ghost_threshold: 0.7
+  temporal_threshold: 0.4
+
+# Output options
+output: all  # 'markdown', 'html', 'csv', or 'all'
+output_dir: reports
+
+# Include plots in HTML reports
+include_plots: true

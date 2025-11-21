@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roboqa-temporal"
+version = "0.1.0"
+description = "Automated quality assessment and anomaly detection for multi-sensor robotics datasets"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Archit Jain", email = "architj@uw.edu"},
+]
+keywords = ["robotics", "quality-assessment", "anomaly-detection", "ros2", "point-cloud"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Researchers/Developers",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Software Development",
+]
+
+dependencies = [
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "scikit-learn>=1.0.0",
+    "open3d>=0.15.0",
+    "rclpy>=3.0.0",
+    "rosbag2-py>=0.9.0",
+    "sensor-msgs>=4.0.0",
+    "pandas>=1.3.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.11.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.62.0",
+    "tabulate>=0.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+]
+
+[project.scripts]
+roboqa = "roboqa_temporal.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["roboqa_temporal*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
