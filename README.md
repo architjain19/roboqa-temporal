@@ -79,6 +79,27 @@ pip install -e .
 - `pyyaml` >= 6.0
 - `tqdm` >= 4.62.0
 - `tabulate` >= 0.9.0
+- `lark-parser` >= 0.12.0
+
+
+## Testing
+
+The integration tests exercise the ROS 2 loader against the sample bag in `dataset/mybag`.
+
+1. Ensure ROS 2 Humble is installed (see prerequisites above) and source it:
+   ```bash
+   source /opt/ros/humble/setup.bash
+   ```
+2. Install development dependencies:
+   ```bash
+   pip install -e .[dev]
+   ```
+3. Run the test suite (skips automatically if ROS bindings are unavailable):
+   ```bash
+   pytest -q
+   ```
+
+GitHub Actions provisions the same ROS packages via `ros-tooling/setup-ros` and runs these tests on every push and pull request.
 
 <!-- ## Quick Start
 
