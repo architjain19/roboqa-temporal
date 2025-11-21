@@ -8,8 +8,9 @@ Thank you for your interest in contributing to RoboQA-Temporal! This document pr
 2. Clone your fork: `git clone https://github.com/yourusername/roboqa-temporal.git`
 3. Create a virtual environment: `python3 -m venv venv`
 4. Activate it: `source venv/bin/activate` (Linux)
-5. Install dependencies: `pip install -r requirements.txt`
-6. Install in development mode: `pip install -e .`
+5. Source ROS: `source /opt/ros/humble/setup.bash` (Linux)
+6. Install dependencies: `pip install -r requirements.txt`
+7. Install in development mode: `pip install -e .`
 
 ## Development Workflow
 

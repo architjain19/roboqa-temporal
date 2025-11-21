@@ -48,6 +48,15 @@ Notes:
 git clone https://github.com/architjain19/roboqa-temporal.git
 cd roboqa-temporal
 
+# Create a virtual environment:
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate`
+
+# 5. Source ROS
+source /opt/ros/humble/setup.bash
+
 # Install dependencies
 pip install -r requirements.txt
 
