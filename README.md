@@ -70,9 +70,6 @@ pip install -e .
 - `scipy` >= 1.7.0
 - `scikit-learn` >= 1.0.0
 - `open3d` >= 0.15.0
-- `rclpy` >= 3.0.0
-- `rosbag2-py` >= 0.9.0
-- `sensor-msgs` >= 4.0.0
 - `pandas` >= 1.3.0
 - `matplotlib` >= 3.5.0
 - `seaborn` >= 0.11.0
