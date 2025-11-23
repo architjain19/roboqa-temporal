@@ -22,6 +22,7 @@ Basic usage example for RoboQA-Temporal.
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 import yaml
@@ -30,6 +31,7 @@ from roboqa_temporal.loader import BagLoader
 from roboqa_temporal.preprocessing import Preprocessor
 from roboqa_temporal.detection import AnomalyDetector
 from roboqa_temporal.reporting import ReportGenerator
+from roboqa_temporal.synchronization import TemporalSyncValidator
 
 
 def load_config(config_path: str) -> dict:
@@ -135,6 +137,18 @@ Examples:
         help="Verbose output",
     )
 
+    parser.add_argument(
+        "--temporal-sync",
+        action="store_true",
+        help="Run the multi-sensor temporal synchronization validator (Feature 1)",
+    )
+
+    parser.add_argument(
+        "--temporal-sync-max",
+        type=int,
+        help="Maximum messages per topic used by the temporal synchronization validator",
+    )
+
     args = parser.parse_args()
 
     # Load configuration if provided
@@ -162,6 +176,15 @@ Examples:
     enable_spatial = "spatial" not in disabled_detectors
     enable_ghost = "ghost" not in disabled_detectors
     enable_temporal = "temporal" not in disabled_detectors
+
+    temporal_sync_cfg = config.get("temporal_sync", {})
+    temporal_sync_enabled = args.temporal_sync or temporal_sync_cfg.get("enabled", False)
+    temporal_sync_topics = temporal_sync_cfg.get("topics")
+    temporal_sync_thresholds = temporal_sync_cfg.get("approximate_time_threshold_ms")
+    temporal_sync_freq = temporal_sync_cfg.get("frequency_hz")
+    temporal_sync_ptp = temporal_sync_cfg.get("ptp")
+    temporal_sync_storage_id = temporal_sync_cfg.get("storage_id", "mcap")
+    temporal_sync_max = args.temporal_sync_max or temporal_sync_cfg.get("max_messages")
 
     # Validate bag file
     bag_path = Path(args.bag_file)
@@ -235,6 +258,24 @@ Examples:
             include_plots=include_plots,
         )
 
+        sync_report = None
+        if temporal_sync_enabled:
+            print()
+            print("Running temporal synchronization validator...")
+            validator = TemporalSyncValidator(
+                topics=temporal_sync_topics,
+                expected_frequency_hz=temporal_sync_freq,
+                approximate_time_threshold_ms=temporal_sync_thresholds,
+                storage_id=temporal_sync_storage_id,
+                ptp_config=temporal_sync_ptp,
+                output_dir=os.path.join(output_dir, "temporal_sync"),
+            )
+            sync_report = validator.validate(
+                str(bag_path),
+                max_messages_per_topic=temporal_sync_max,
+                include_visualizations=include_plots,
+            )
+
         print()
         print("=" * 60)
         print("Analysis Complete!")
@@ -242,6 +283,29 @@ Examples:
         print("Generated reports:")
         for format_name, file_path in output_files.items():
             print(f"  {format_name.upper()}: {file_path}")
+
+        if sync_report:
+            print()
+            print("Temporal Synchronization Summary")
+            print("-" * 40)
+            for key, value in sync_report.metrics.items():
+                print(f"{key}: {value:.4f}")
+            for pair_key, pair in sync_report.pair_results.items():
+                print(
+                    f"{pair_key}: max Δt={pair.max_delta_ms:.2f} ms, "
+                    f"score={pair.temporal_offset_score:.2f}, "
+                    f"PTP={'PASS' if pair.ptp_pass else 'FAIL'}"
+                )
+            if sync_report.recommendations:
+                print("\nRecommendations:")
+                for rec in sync_report.recommendations:
+                    print(f"- {rec}")
+            if sync_report.compliance_flags:
+                print("\nCompliance Flags:")
+                for flag in sync_report.compliance_flags:
+                    print(f"- {flag}")
+            if sync_report.parameter_file:
+                print(f"\nTimestamp corrections: {sync_report.parameter_file}")
 
         print()
         print("Summary:")
@@ -263,4 +327,3 @@ Examples:
 
 if __name__ == "__main__":
     main()
-

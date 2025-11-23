@@ -23,6 +23,9 @@ roboqa-temporal/
 │   ├── reporting/            # Report generation
 │   │   ├── __init__.py
 │   │   └── report_generator.py  # ReportGenerator for multiple formats
+│   ├── synchronization/      # Temporal sync validator
+│   │   ├── __init__.py
+│   │   └── temporal_validator.py  # Feature 1 implementation
 │   ├── cli/                  # Command-line interface
 │   │   ├── __init__.py
 │   │   └── main.py           # CLI entry point
@@ -71,6 +74,11 @@ roboqa-temporal/
 - **ReportGenerator**: Creates quality assessment reports
 - Supports Markdown, HTML (with plots), and CSV formats
 - Generates visualizations and statistics
+
+### synchronization/
+- **TemporalSyncValidator**: Feature 1 module that inspects MCAP bags for camera/LiDAR/IMU/PPS alignment.
+- Implements rosbag2_py ingestion, ApproximateTime pairing, chi-square/PTP checks, cross-correlation analysis, and Kalman-based drift prediction.
+- Produces ISO 8000-61 reports, drift heatmaps, and ROS2 parameter files with timestamp corrections.
 
 ### cli/
 - **main**: Command-line interface entry point
