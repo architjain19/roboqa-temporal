@@ -6,6 +6,59 @@ RoboQA-Temporal is an open-source, professional Python toolkit focused on automa
 
 ![RoboQA-Logo](.docs/roboqa_logo.png)
 
+## Feature 1: Multi-Sensor Temporal Synchronization Validator
+
+This release adds the **Multi-Sensor Temporal Synchronization Validator (TSV)** that inspects MCAP bags and verifies that camera, LiDAR, IMU, and PPS streams stay aligned:
+
+- Uses `rosbag2_py` with the MCAP storage plugin to harvest timestamps from `/camera/image_raw`, `/pointcloud2`, `/imu/data`, and optional hardware PPS topics.
+- Computes hardware trigger alignment, PTP (IEEE 1588) compliance, ApproximateTime synchronization scores, chi-square sync tests, cross-correlation offsets, drift-rate predictions (Kalman), and frequency consistency checks.
+- Emits ISO 8000-61 quality reports, temporal drift heatmaps, and ROS2 parameter files containing recommended timestamp corrections.
+- Provides actionable recommendations/flags when sensors fall out of sync or require hardware recalibration.
+
+### CLI Usage
+
+Run the validator alongside the standard pipeline:
+
+```bash
+roboqa path/to/bag.mcap --temporal-sync
+```
+
+Optional flags:
+
+- `--temporal-sync-max <N>` – limit the number of messages per topic when scanning large bags.
+- `--no-plots` – reuses the existing flag to skip heatmap generation.
+
+The CLI prints temporal metrics, recommendations, compliance flags, and the path to exported correction params (`reports/<run>/temporal_sync/params/*_timestamp_corrections.yaml`).
+
+### Configuration
+
+`examples/config_example.yaml` now exposes a dedicated `temporal_sync` block:
+
+```yaml
+temporal_sync:
+  enabled: true
+  storage_id: mcap
+  topics:
+    camera: /camera/image_raw
+    lidar: /velodyne_points
+    imu: /imu/data
+    pps: /hardware/pps
+  frequency_hz:
+    camera: 30
+    lidar: 10
+    imu: 200
+  approximate_time_threshold_ms:
+    camera_lidar: 30
+    lidar_imu: 15
+    camera_imu: 40
+  ptp:
+    max_offset_ns: 1000000
+    max_jitter_ns: 100000
+  max_messages: 5000
+```
+
+See `.docs/feature1_temporal_sync_validator.md` for the full design and architecture.
+
 ## Design/Components/Stories:
 
 ### User Stories:

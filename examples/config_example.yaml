@@ -62,3 +62,25 @@ output_dir: reports
 
 # Include plots in HTML reports
 include_plots: true
+
+# Temporal synchronization validator (Feature 1)
+temporal_sync:
+  enabled: false
+  storage_id: mcap
+  max_messages: 5000
+  topics:
+    camera: /camera/image_raw
+    lidar: /velodyne_points
+    imu: /imu/data
+    pps: /hardware/pps
+  frequency_hz:
+    camera: 30
+    lidar: 10
+    imu: 200
+  approximate_time_threshold_ms:
+    camera_lidar: 30
+    lidar_imu: 15
+    camera_imu: 40
+  ptp:
+    max_offset_ns: 1000000
+    max_jitter_ns: 100000
