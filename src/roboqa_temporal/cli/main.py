@@ -144,6 +144,12 @@ Examples:
     )
 
     parser.add_argument(
+        "--temporal-sync-output",
+        choices=["markdown", "html", "csv", "all"],
+        help="Output format for temporal synchronization reports (default: all)",
+    )
+
+    parser.add_argument(
         "--temporal-sync-max",
         type=int,
         help="Maximum messages per topic used by the temporal synchronization validator",
@@ -183,8 +189,10 @@ Examples:
     temporal_sync_thresholds = temporal_sync_cfg.get("approximate_time_threshold_ms")
     temporal_sync_freq = temporal_sync_cfg.get("frequency_hz")
     temporal_sync_ptp = temporal_sync_cfg.get("ptp")
+    temporal_sync_output = args.temporal_sync_output or temporal_sync_cfg.get("report_format", "all")
     temporal_sync_storage_id = temporal_sync_cfg.get("storage_id", "mcap")
     temporal_sync_max = args.temporal_sync_max or temporal_sync_cfg.get("max_messages")
+    temporal_sync_formats = None if temporal_sync_output == "all" else [temporal_sync_output]
 
     # Validate bag file
     bag_path = Path(args.bag_file)
@@ -269,6 +277,7 @@ Examples:
                 storage_id=temporal_sync_storage_id,
                 ptp_config=temporal_sync_ptp,
                 output_dir=os.path.join(output_dir, "temporal_sync"),
+                report_formats=temporal_sync_formats,
             )
             sync_report = validator.validate(
                 str(bag_path),
@@ -288,6 +297,11 @@ Examples:
             print()
             print("Temporal Synchronization Summary")
             print("-" * 40)
+            if sync_report.report_files:
+                print("Report files:")
+                for fmt, file_path in sync_report.report_files.items():
+                    print(f"  {fmt.upper()}: {file_path}")
+                print()
             for key, value in sync_report.metrics.items():
                 print(f"{key}: {value:.4f}")
             for pair_key, pair in sync_report.pair_results.items():

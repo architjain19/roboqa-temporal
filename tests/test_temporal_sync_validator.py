@@ -65,3 +65,111 @@ def test_temporal_sync_parameter_file(tmp_path):
     assert payload["metadata"]["iso_8000_61"] is True
     assert "temporal_corrections" in payload
     assert any(key.startswith("camera_lidar") for key in payload["temporal_corrections"])
+
+
+def test_temporal_sync_report_structure_smoke(tmp_path):
+    """
+    author: xinxintai
+    reviewer: buddy_placeholder
+    category: smoke test
+    """
+    validator = TemporalSyncValidator(
+        output_dir=str(tmp_path),
+        expected_frequency_hz={"camera": 30.0, "lidar": 30.0, "imu": 200.0},
+    )
+    camera = _make_stream("camera", 30.0, 120)
+    lidar = _make_stream("lidar", 30.0, 120)
+    imu = _make_stream("imu", 200.0, 400)
+    streams = {"camera": camera, "lidar": lidar, "imu": imu}
+
+    report = validator.analyze_streams(streams, bag_name="structure", include_visualizations=False)
+
+    expected_pairs = {"camera_lidar", "lidar_imu", "camera_imu"}
+    assert expected_pairs.issubset(report.pair_results.keys())
+    assert report.metrics["temporal_offset_score"] > 0.4
+    for pair_name in expected_pairs:
+        pair = report.pair_results[pair_name]
+        assert pair.deltas_ms.size > 0
+        assert pair.rolling_mean_ms.size == pair.deltas_ms.size
+
+
+def test_temporal_sync_frequency_violation_one_shot(tmp_path):
+    """
+    author: xinxintai
+    reviewer: buddy_placeholder
+    category: one-shot test
+    """
+    validator = TemporalSyncValidator(output_dir=str(tmp_path))
+    camera = _make_stream("camera", 10.0, 200)
+    camera.expected_frequency = 30.0
+    lidar = _make_stream("lidar", 10.0, 200)
+    streams = {"camera": camera, "lidar": lidar}
+
+    report = validator.analyze_streams(streams, bag_name="freq", include_visualizations=False)
+
+    assert "camera_frequency_violation" in report.compliance_flags
+    assert any("camera frequency deviation" in rec for rec in report.recommendations)
+
+
+def test_temporal_sync_handles_no_matches_edge(tmp_path):
+    """
+    author: xinxintai
+    reviewer: buddy_placeholder
+    category: edge test
+    """
+    validator = TemporalSyncValidator(output_dir=str(tmp_path))
+    camera = _make_stream("camera", 30.0, 60)
+    lidar = _make_stream("lidar", 30.0, 60, offset_ms=6000.0)
+    streams = {"camera": camera, "lidar": lidar}
+
+    report = validator.analyze_streams(streams, bag_name="edge", include_visualizations=False)
+    pair = report.pair_results["camera_lidar"]
+
+    assert pair.deltas_ms.size == min(len(camera.timestamps_ns), len(lidar.timestamps_ns))
+    assert not pair.approx_time_pass
+    assert math.isclose(pair.max_delta_ms, 6000.0, rel_tol=0.01)
+
+
+def test_auto_detect_topics_pattern_detection():
+    """
+    author: xinxintai
+    reviewer: buddy_placeholder
+    category: pattern test
+    justification: verifies naming/type patterns trigger automatic topic detection
+    """
+    topic_types = {
+        "/perception/front/image_color": "sensor_msgs/msg/Image",
+        "/perception/rear/camera/compressed": "sensor_msgs/msg/CompressedImage",
+        "/perception/front/pointcloud": "sensor_msgs/msg/PointCloud2",
+        "/custom/front/image_stream": "custom_msgs/msg/ImageLike",
+        "/imu/data": "sensor_msgs/msg/Imu",
+    }
+
+    matches = TemporalSyncValidator._auto_detect_topics("camera", topic_types)
+
+    assert matches == sorted(
+        [
+            "/custom/front/image_stream",
+            "/perception/front/image_color",
+            "/perception/rear/camera/compressed",
+        ]
+    )
+
+
+def test_temporal_sync_exports_report_files(tmp_path):
+    validator = TemporalSyncValidator(
+        output_dir=str(tmp_path),
+        report_formats=["markdown", "csv"],
+        auto_export_reports=True,
+    )
+    camera = _make_stream("camera", 30.0, 40)
+    lidar = _make_stream("lidar", 10.0, 40, offset_ms=2.5)
+    streams = {"camera": camera, "lidar": lidar}
+
+    report = validator.analyze_streams(streams, bag_name="export", include_visualizations=False)
+
+    assert {"markdown", "csv"}.issubset(report.report_files.keys())
+    for path in report.report_files.values():
+        assert Path(path).exists()
+    md_path = Path(report.report_files["markdown"])
+    assert "Temporal Synchronization Report" in md_path.read_text()

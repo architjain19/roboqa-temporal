@@ -121,6 +121,7 @@ class TemporalSyncReport:
     recommendations: List[str]
     compliance_flags: List[str]
     parameter_file: Optional[str] = None
+    report_files: Dict[str, str] = field(default_factory=dict)
     generated_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     )
@@ -145,6 +146,7 @@ class TemporalSyncReport:
             "recommendations": self.recommendations,
             "compliance_flags": self.compliance_flags,
             "parameter_file": self.parameter_file,
+            "report_files": self.report_files,
         }
 
 
@@ -178,6 +180,8 @@ class TemporalSyncValidator:
         kalman_measurement_noise: float = 1e-4,
         kalman_horizon_s: float = 5.0,
         max_workers: int = 4,
+        report_formats: Optional[Iterable[str]] = None,
+        auto_export_reports: bool = True,
     ) -> None:
         self.topics = {**TemporalSyncValidator.DEFAULT_TOPICS, **(topics or {})}
         self.expected_frequency_hz = expected_frequency_hz or {
@@ -207,6 +211,11 @@ class TemporalSyncValidator:
         self.kalman_measurement_noise = kalman_measurement_noise
         self.kalman_horizon_s = kalman_horizon_s
         self.max_workers = max_workers
+        normalized_formats = None
+        if report_formats:
+            normalized_formats = tuple(sorted({fmt.lower() for fmt in report_formats}))
+        self.report_formats = normalized_formats
+        self.auto_export_reports = auto_export_reports
 
     # ------------------------------------------------------------------ #
     # Public API
@@ -266,7 +275,7 @@ class TemporalSyncValidator:
         metrics = self._aggregate_metrics(pair_results)
         param_path = self._export_parameter_file(pair_results, bag_name)
 
-        return TemporalSyncReport(
+        report = TemporalSyncReport(
             streams=streams,
             pair_results=pair_results,
             metrics=metrics,
@@ -274,6 +283,13 @@ class TemporalSyncValidator:
             compliance_flags=sorted(set(compliance_flags)),
             parameter_file=param_path,
         )
+        if self.auto_export_reports:
+            formats = self.report_formats or ("markdown", "html", "csv")
+            report.report_files = self._export_summary_reports(
+                report, bag_name, formats, include_visualizations
+            )
+
+        return report
 
     # ------------------------------------------------------------------ #
     # Bag ingestion
@@ -770,3 +786,219 @@ class TemporalSyncValidator:
         with open(output_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(payload, f, sort_keys=True)
         return str(output_path)
+
+    def _export_summary_reports(
+        self,
+        report: TemporalSyncReport,
+        bag_name: str,
+        formats: Iterable[str],
+        include_visualizations: bool,
+    ) -> Dict[str, str]:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        base_name = f"{bag_name}_temporal_sync_{timestamp}"
+        exported: Dict[str, str] = {}
+        pair_df = self._build_pair_dataframe(report)
+
+        for fmt in formats:
+            fmt_lower = fmt.lower()
+            if fmt_lower == "markdown":
+                path = self._write_markdown_report(report, pair_df, base_name)
+                exported["markdown"] = str(path)
+            elif fmt_lower == "html":
+                path = self._write_html_report(report, pair_df, base_name, include_visualizations)
+                exported["html"] = str(path)
+            elif fmt_lower == "csv":
+                path = self._write_csv_report(pair_df, base_name)
+                exported["csv"] = str(path)
+        return exported
+
+    def _build_pair_dataframe(self, report: TemporalSyncReport) -> pd.DataFrame:
+        rows: List[Dict[str, Any]] = []
+        for pair in report.pair_results.values():
+            rows.append(
+                {
+                    "pair_name": pair.pair_name,
+                    "max_delta_ms": pair.max_delta_ms,
+                    "temporal_offset_score": pair.temporal_offset_score,
+                    "drift_rate_ms_per_s": pair.drift_rate_ms_per_s,
+                    "approx_time_pass": pair.approx_time_pass,
+                    "ptp_pass": pair.ptp_pass,
+                    "chi_square_pvalue": pair.chi_square_pvalue,
+                    "cross_correlation_lag_ms": pair.cross_correlation_lag_ms,
+                    "kalman_predicted_drift_ms": pair.kalman_predicted_drift_ms,
+                    "frequency_ok": pair.frequency_ok,
+                    "recommendations": "; ".join(pair.recommendations),
+                    "compliance_flags": "; ".join(pair.compliance_flags),
+                }
+            )
+        columns = [
+            "pair_name",
+            "max_delta_ms",
+            "temporal_offset_score",
+            "drift_rate_ms_per_s",
+            "approx_time_pass",
+            "ptp_pass",
+            "chi_square_pvalue",
+            "cross_correlation_lag_ms",
+            "kalman_predicted_drift_ms",
+            "frequency_ok",
+            "recommendations",
+            "compliance_flags",
+        ]
+        if rows:
+            return pd.DataFrame(rows, columns=columns)
+        return pd.DataFrame(columns=columns)
+
+    def _write_markdown_report(
+        self, report: TemporalSyncReport, pair_df: pd.DataFrame, base_name: str
+    ) -> Path:
+        output_path = self.output_dir / f"{base_name}.md"
+        with open(output_path, "w", encoding="utf-8") as md_file:
+            md_file.write("# Temporal Synchronization Report\n\n")
+            md_file.write(f"**Generated:** {report.generated_at}\n\n")
+            md_file.write("## Metrics\n\n")
+            md_file.write("| Metric | Value |\n|--------|-------|\n")
+            for key, value in sorted(report.metrics.items()):
+                if isinstance(value, float):
+                    md_file.write(f"| {key} | {value:.6f} |\n")
+                else:
+                    md_file.write(f"| {key} | {value} |\n")
+            md_file.write("\n")
+
+            if not pair_df.empty:
+                md_file.write("## Pairwise Results\n\n")
+                md_file.write(self._dataframe_to_markdown(pair_df))
+                md_file.write("\n\n")
+
+            if report.recommendations:
+                md_file.write("## Recommendations\n\n")
+                for rec in report.recommendations:
+                    md_file.write(f"- {rec}\n")
+                md_file.write("\n")
+
+            if report.compliance_flags:
+                md_file.write("## Compliance Flags\n\n")
+                for flag in report.compliance_flags:
+                    md_file.write(f"- {flag}\n")
+                md_file.write("\n")
+
+            if report.parameter_file:
+                md_file.write("## Timestamp Corrections\n\n")
+                md_file.write(f"`{report.parameter_file}`\n")
+
+        return output_path
+
+    def _write_html_report(
+        self,
+        report: TemporalSyncReport,
+        pair_df: pd.DataFrame,
+        base_name: str,
+        include_visualizations: bool,
+    ) -> Path:
+        output_path = self.output_dir / f"{base_name}.html"
+        metric_entries = []
+        for key, value in sorted(report.metrics.items()):
+            if isinstance(value, float):
+                display = f"{value:.6f}"
+            else:
+                display = str(value)
+            metric_entries.append(f"<tr><td>{key}</td><td>{display}</td></tr>")
+        metrics_rows = "\n".join(metric_entries)
+        pair_table = pair_df.to_html(index=False, classes="pair-table") if not pair_df.empty else "<p>No pair results.</p>"
+        rec_list = (
+            "".join(f"<li>{rec}</li>" for rec in report.recommendations)
+            if report.recommendations
+            else "<li>No recommendations</li>"
+        )
+        flag_list = (
+            "".join(f"<li>{flag}</li>" for flag in report.compliance_flags)
+            if report.compliance_flags
+            else "<li>No compliance flags</li>"
+        )
+
+        heatmap_section = ""
+        if include_visualizations:
+            snippets: List[str] = []
+            for pair in report.pair_results.values():
+                if not pair.heatmap_path:
+                    continue
+                rel_path = os.path.relpath(pair.heatmap_path, start=output_path.parent)
+                snippets.append(
+                    f"<div class='heatmap'><h3>{pair.pair_name}</h3>"
+                    f"<img src=\"{rel_path}\" alt=\"Heatmap for {pair.pair_name}\" /></div>"
+                )
+            if snippets:
+                heatmap_section = "<section><h2>Heatmaps</h2>" + "\n".join(snippets) + "</section>"
+
+        param_section = ""
+        if report.parameter_file:
+            rel_param = os.path.relpath(report.parameter_file, start=output_path.parent)
+            param_section = f"<section><h2>Timestamp Corrections</h2><p><code>{rel_param}</code></p></section>"
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Temporal Synchronization Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; color: #222; }}
+        h1, h2 {{ color: #0b3954; }}
+        table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+        th, td {{ border: 1px solid #ccc; padding: 8px; text-align: left; }}
+        th {{ background: #f2f2f2; }}
+        section {{ margin-bottom: 30px; }}
+        .heatmap img {{ max-width: 100%; border: 1px solid #ddd; padding: 4px; }}
+    </style>
+</head>
+<body>
+    <h1>Temporal Synchronization Report</h1>
+    <p><strong>Generated:</strong> {report.generated_at}</p>
+    <section>
+        <h2>Metrics</h2>
+        <table>
+            <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+            <tbody>
+                {metrics_rows}
+            </tbody>
+        </table>
+    </section>
+    <section>
+        <h2>Pairwise Results</h2>
+        {pair_table}
+    </section>
+    <section>
+        <h2>Recommendations</h2>
+        <ul>{rec_list}</ul>
+    </section>
+    <section>
+        <h2>Compliance Flags</h2>
+        <ul>{flag_list}</ul>
+    </section>
+    {param_section}
+    {heatmap_section}
+</body>
+</html>
+"""
+        with open(output_path, "w", encoding="utf-8") as html_file:
+            html_file.write(html)
+        return output_path
+
+    def _write_csv_report(self, pair_df: pd.DataFrame, base_name: str) -> Path:
+        output_path = self.output_dir / f"{base_name}.csv"
+        pair_df.to_csv(output_path, index=False)
+        return output_path
+
+    def _dataframe_to_markdown(self, dataframe: pd.DataFrame) -> str:
+        headers = list(dataframe.columns)
+        header_line = "| " + " | ".join(headers) + " |"
+        separator = "|" + "|".join([" --- " for _ in headers]) + "|"
+        rows = [header_line, separator]
+        for _, row in dataframe.iterrows():
+            formatted_values: List[str] = []
+            for value in row:
+                if isinstance(value, float):
+                    formatted_values.append(f"{value:.6f}")
+                else:
+                    formatted_values.append(str(value))
+            rows.append("| " + " | ".join(formatted_values) + " |")
+        return "\n".join(rows)
