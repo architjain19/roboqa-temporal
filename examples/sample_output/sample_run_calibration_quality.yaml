@@ -1,0 +1,12 @@
+calibration_corrections:
+  front_camera_good:
+    overall_pass: true
+    quality_score: 0.975
+  side_camera_bad:
+    overall_pass: false
+    quality_score: 0.25
+    recommendation: "Recalibrate this camera\u2013LiDAR pair."
+metadata:
+  bag_name: sample_run
+  iso_8000_61: true
+  type: sensor_calibration_quality

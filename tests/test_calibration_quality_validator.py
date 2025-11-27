@@ -149,3 +149,14 @@ def test_calibration_quality_parameter_file(tmp_path):
 
     assert good_entry["quality_score"] > off_entry["quality_score"]
     assert "recalibrate" in off_entry.get("recommendation", "").lower()
+
+    # Check HTML report generation
+    assert report.html_report_file is not None
+    html_path = Path(report.html_report_file)
+    assert html_path.exists()
+    html_content = html_path.read_text()
+    assert "Calibration Quality Report" in html_content
+    assert "cam_lidar_good" in html_content
+    assert "cam_lidar_off" in html_content
+    assert "FAIL" in html_content  # off_pair should fail
+
