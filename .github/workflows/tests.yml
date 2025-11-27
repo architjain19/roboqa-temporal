@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      # - main
+      - main
       - feat/archit/pc_anomaly_detection
   pull_request:
 
