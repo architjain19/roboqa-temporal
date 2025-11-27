@@ -17,3 +17,6 @@ reports/
 
 # Datasets
 dataset/
+
+# Tests
+.coverage*

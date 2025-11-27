@@ -325,6 +325,7 @@ class ReportGenerator:
                 ]
                 ax.scatter(anomaly_frames, anomaly_points, c="red", s=100, alpha=0.7, label="Anomalies")
 
+            # sns.histplot(df["num_points"], bins=30, kde=False, color="gray", alpha=0.3, ax=ax, label="Point Count Distribution")
             ax.legend()
             plt.tight_layout()
             plot_path = plots_dir / f"{base_name}_point_count_{timestamp}.png"
