@@ -22,24 +22,22 @@ RoboQA-Temporal is an open-source, professional Python toolkit focused on automa
 ### Prerequisites
 
 - Python 3.10 or higher
-- ROS2 (for ROS2 bag file support) (Distro - Humble)
+- ROS2 (for ROS2 bag file support) (Distro - `Humble`)
 
-The following ROS packages are provided by your ROS 2 installation (APT) and should NOT be listed in pyproject dependencies. Install on Debian/Ubuntu with ROS 2 Humble:
+The following ROS packages are provided by ROS 2 Humble installation (`APT`)
 
 ```bash
 sudo apt update
 sudo apt install ros-humble-rclpy ros-humble-rosbag2 ros-humble-sensor-msgs
 ```
 
-Source ROS 2 environment before running code or tests that import ROS python modules:
+Source ROS 2 environment before running code or tests:
 
 ```bash
 source /opt/ros/humble/setup.bash
 ```
 
-Notes:
-- Use the system Python (or add /opt/ros/.../dist-packages to PYTHONPATH) if running inside a venv.
-- The project can be installed in editable mode without ROS deps; ROS packages must be installed via apt as shown above.
+> **Note:** Use the system Python (or add /opt/ros/.../dist-packages to PYTHONPATH) if running inside a venv.
 
 ### Install from Source
 
@@ -81,7 +79,7 @@ pip install -e .
 
 ## Testing
 
-The integration tests exercise the ROS 2 loader against the sample bag in `dataset/mybag`.
+The integration tests exercise the ROS 2 loader and other anomaly and quality testing tools against the sample bag in `dataset/mybag`.
 
 1. Ensure ROS 2 Humble is installed (see prerequisites above) and source it:
    ```bash
@@ -91,14 +89,14 @@ The integration tests exercise the ROS 2 loader against the sample bag in `datas
    ```bash
    pip install -e .[dev]
    ```
-3. Run the test suite (skips automatically if ROS bindings are unavailable):
+3. Run the test suite:
    ```bash
    pytest -q
    ```
 
-GitHub Actions provisions the same ROS packages via `ros-tooling/setup-ros` and runs these tests on every push and pull request.
+> **Note**: GitHub Actions setup for this package, uses the same ROS packages via `ros-tooling/setup-ros` and runs these tests on every push and pull request.
 
-<!-- ## Quick Start
+## Quick Start
 
 ### Usage
 
@@ -120,7 +118,7 @@ roboqa path/to/bag_file.db3 --output html --max-frames 1000 --config path/to/con
 
 ```
 
-### Python API
+<!-- ### Python API
 
 ```python
 from roboqa_temporal import BagLoader, Preprocessor, AnomalyDetector, ReportGenerator
@@ -168,6 +166,9 @@ output_dir: reports
 
 See `examples/config_example.yaml` for a complete configuration example. -->
 
+
+
+
 ## Project Structure
 
 (For more details check [here](PROJECT_STRUCTURE.md))
@@ -180,7 +181,6 @@ RoboQA/
 │   ├── detection/            # Anomaly detection algorithms
 │   ├── reporting/            # Report generation
 │   ├── cli/                  # Command-line interface
-│   └── config/               # Configuration utilities
 ├── tests/                    # Unit tests
 ├── examples/                 # Example scripts and configs
 ├── .docs/                     # Documentation
