@@ -6,6 +6,12 @@ from roboqa_temporal.detection.detector import AnomalyDetector, DetectionResult
 
 
 def test_anomaly_detector_returns_health_metrics(sample_frames):
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: integration test (for CI purposes)
+    justification: Tests end-to-end detection pipeline with real ROS2 bag data
+    """
     np.random.seed(0)  # deterministic sampling inside ghost detector
 
     detector = AnomalyDetector()
@@ -18,6 +24,12 @@ def test_anomaly_detector_returns_health_metrics(sample_frames):
 
 
 def test_anomaly_detector_respects_disabled_detectors(sample_frames):
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: integration test (for CI purposes)
+    justification: Tests detector configuration with real ROS2 bag data
+    """
     detector = AnomalyDetector(
         enable_density_detection=False,
         enable_spatial_detection=True,

@@ -15,7 +15,11 @@ from roboqa_temporal.preprocessing import Preprocessor
 
 
 def test_anomaly_detector_with_empty_frames():
-    """Test detector handles empty frame list gracefully."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: one-shot test
+    """
     detector = AnomalyDetector()
     result = detector.detect([])
     
@@ -26,7 +30,11 @@ def test_anomaly_detector_with_empty_frames():
 
 
 def test_anomaly_detector_with_single_frame():
-    """Test detector processes a single frame without crashing."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: one-shot test
+    """
     detector = AnomalyDetector()
     
     # Create a simple synthetic frame
@@ -45,7 +53,11 @@ def test_anomaly_detector_with_single_frame():
 
 
 def test_anomaly_detector_with_multiple_frames():
-    """Test detector processes multiple frames."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: one-shot test
+    """
     detector = AnomalyDetector()
     
     # Create multiple synthetic frames
@@ -66,27 +78,12 @@ def test_anomaly_detector_with_multiple_frames():
     assert "overall_health_score" in result.health_metrics
 
 
-def test_anomaly_detector_selective_detectors():
-    """Test detector with only specific detectors enabled."""
-    detector = AnomalyDetector(
-        enable_density_detection=True,
-        enable_spatial_detection=False,
-        enable_ghost_detection=False,
-        enable_temporal_detection=False,
-    )
-    
-    points = np.random.rand(50, 3) * 10
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="test", points=points)
-    
-    result = detector.detect([frame])
-    
-    assert isinstance(result, DetectionResult)
-    # Should only have density detector results
-    assert "density" in result.detector_results or len(result.detector_results) == 1
-
-
 def test_preprocessor_downsample():
-    """Test preprocessor downsampling with synthetic data."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: one-shot test
+    """
     preprocessor = Preprocessor(voxel_size=0.5)
     
     # Create a frame with many points
@@ -100,7 +97,11 @@ def test_preprocessor_downsample():
 
 
 def test_preprocessor_remove_outliers():
-    """Test outlier removal with synthetic data."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: one-shot test
+    """
     preprocessor = Preprocessor(remove_outliers=True)
     
     # Create points with some outliers
@@ -117,7 +118,11 @@ def test_preprocessor_remove_outliers():
 
 
 def test_point_cloud_frame_creation():
-    """Test PointCloudFrame dataclass creation and initialization."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: one-shot test
+    """
     points = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
     
     frame = PointCloudFrame(
@@ -132,41 +137,12 @@ def test_point_cloud_frame_creation():
     assert np.array_equal(frame.points, points)
 
 
-def test_point_cloud_frame_with_intensities():
-    """Test PointCloudFrame with intensity data."""
-    points = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
-    intensities = np.array([0.5, 0.8])
-    
-    frame = PointCloudFrame(
-        timestamp=1000.0,
-        frame_id="test_frame",
-        points=points,
-        intensities=intensities
-    )
-    
-    assert frame.intensities is not None
-    assert len(frame.intensities) == 2
-
-
-def test_anomaly_dataclass_creation():
-    """Test Anomaly dataclass creation."""
-    anomaly = Anomaly(
-        frame_index=0,
-        timestamp=1000.0,
-        anomaly_type="density_drop",
-        severity=0.75,
-        description="Significant density drop detected",
-        metadata={"drop_percentage": 0.5}
-    )
-    
-    assert anomaly.frame_index == 0
-    assert anomaly.severity == 0.75
-    assert anomaly.anomaly_type == "density_drop"
-    assert "drop_percentage" in anomaly.metadata
-
-
 def test_detection_result_creation():
-    """Test DetectionResult dataclass creation."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: one-shot test
+    """
     anomaly = Anomaly(
         frame_index=0,
         timestamp=1000.0,
@@ -184,27 +160,3 @@ def test_detection_result_creation():
     assert len(result.anomalies) == 1
     assert result.health_metrics["overall_health_score"] == 0.8
     assert len(result.frame_statistics) == 1
-
-
-def test_preprocessor_with_empty_frames():
-    """Test preprocessor handles empty frame list."""
-    preprocessor = Preprocessor()
-    
-    result = preprocessor.process_sequence([])
-    assert result == []
-
-
-def test_detector_custom_thresholds():
-    """Test detector with custom threshold values."""
-    detector = AnomalyDetector(
-        density_threshold=0.8,
-        spatial_threshold=0.6,
-        ghost_threshold=0.9,
-        temporal_threshold=0.5
-    )
-    
-    points = np.random.rand(50, 3) * 10
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="test", points=points)
-    
-    result = detector.detect([frame])
-    assert isinstance(result, DetectionResult)

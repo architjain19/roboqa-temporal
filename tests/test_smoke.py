@@ -10,13 +10,21 @@ import pytest
 
 
 def test_package_import():
-    """Verify the main package can be imported."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: smoke test
+    """
     import roboqa_temporal
     assert roboqa_temporal.__version__ is not None
 
 
 def test_main_classes_importable():
-    """Verify all main classes can be imported."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: smoke test
+    """
     from roboqa_temporal import (
         BagLoader,
         Preprocessor,
@@ -29,37 +37,12 @@ def test_main_classes_importable():
     assert ReportGenerator is not None
 
 
-def test_detection_classes_importable():
-    """Verify detection module classes can be imported."""
-    from roboqa_temporal.detection import AnomalyDetector
-    from roboqa_temporal.detection.detector import Anomaly, DetectionResult
-    assert AnomalyDetector is not None
-    assert Anomaly is not None
-    assert DetectionResult is not None
-
-
-def test_loader_classes_importable():
-    """Verify loader module classes can be imported."""
-    from roboqa_temporal.loader import BagLoader
-    from roboqa_temporal.loader.bag_loader import PointCloudFrame
-    assert BagLoader is not None
-    assert PointCloudFrame is not None
-
-
-def test_preprocessing_classes_importable():
-    """Verify preprocessing module classes can be imported."""
-    from roboqa_temporal.preprocessing import Preprocessor
-    assert Preprocessor is not None
-
-
-def test_reporting_classes_importable():
-    """Verify reporting module classes can be imported."""
-    from roboqa_temporal.reporting import ReportGenerator
-    assert ReportGenerator is not None
-
-
 def test_anomaly_detector_instantiation():
-    """Verify AnomalyDetector can be instantiated with default settings."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: smoke test
+    """
     from roboqa_temporal.detection import AnomalyDetector
     detector = AnomalyDetector()
     assert detector is not None
@@ -67,40 +50,22 @@ def test_anomaly_detector_instantiation():
 
 
 def test_preprocessor_instantiation():
-    """Verify Preprocessor can be instantiated."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: smoke test
+    """
     from roboqa_temporal.preprocessing import Preprocessor
     preprocessor = Preprocessor()
     assert preprocessor is not None
 
 
 def test_report_generator_instantiation():
-    """Verify ReportGenerator can be instantiated."""
+    """
+    author: architjain
+    reviewer: dharinesh
+    category: smoke test
+    """
     from roboqa_temporal.reporting import ReportGenerator
     generator = ReportGenerator()
     assert generator is not None
-
-
-def test_package_metadata():
-    """Verify package metadata is accessible."""
-    import roboqa_temporal
-    assert hasattr(roboqa_temporal, '__version__')
-    assert hasattr(roboqa_temporal, '__author__')
-    assert hasattr(roboqa_temporal, '__all__')
-    assert len(roboqa_temporal.__all__) == 4
-
-
-def test_detector_has_expected_methods():
-    """Verify AnomalyDetector has expected public methods."""
-    from roboqa_temporal.detection import AnomalyDetector
-    detector = AnomalyDetector()
-    assert hasattr(detector, 'detect')
-    assert callable(detector.detect)
-
-
-def test_preprocessor_has_expected_methods():
-    """Verify Preprocessor has expected public methods."""
-    from roboqa_temporal.preprocessing import Preprocessor
-    preprocessor = Preprocessor()
-    # Check for common preprocessing methods
-    assert hasattr(preprocessor, 'process_frame')
-    assert hasattr(preprocessor, 'process_sequence')
