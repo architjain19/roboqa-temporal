@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feat/archit/pc_anomaly_detection
+      - staging
   pull_request:
 
 jobs:
