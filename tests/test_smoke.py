@@ -69,3 +69,39 @@ def test_report_generator_instantiation():
     from roboqa_temporal.reporting import ReportGenerator
     generator = ReportGenerator()
     assert generator is not None
+
+
+def test_calibration_validator_smoke(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: <buddy name>
+    category: smoke test
+    """
+    from roboqa_temporal.calibration import (
+        CalibrationQualityValidator,
+        CalibrationStream,
+    )
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    
+    # Create a simple synthetic calibration stream
+    image_paths = [f"/synthetic/smoke/image_{i:06d}.png" for i in range(50)]
+    pointcloud_paths = [f"/synthetic/smoke/cloud_{i:06d}.bin" for i in range(50)]
+    calibration_file = "/synthetic/calib/smoke_miscalib_2.0px.txt"
+    
+    pair = CalibrationStream(
+        name="smoke",
+        image_paths=image_paths,
+        pointcloud_paths=pointcloud_paths,
+        calibration_file=calibration_file,
+        camera_id="image_02",
+        lidar_id="velodyne",
+    )
+    
+    pairs = {"smoke_pair": pair}
+    report = validator.analyze_sequences(
+        pairs,
+        bag_name="smoke_bag",
+        include_visualizations=False,
+    )
+
+    assert report.metrics["edge_alignment_score"] > 0.0

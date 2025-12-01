@@ -160,3 +160,42 @@ def test_detection_result_creation():
     assert len(result.anomalies) == 1
     assert result.health_metrics["overall_health_score"] == 0.8
     assert len(result.frame_statistics) == 1
+
+
+def test_calibration_validator_one_shot(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: <buddy name>
+    category: one-shot test
+    """
+    import math
+    from roboqa_temporal.calibration import (
+        CalibrationQualityValidator,
+        CalibrationStream,
+    )
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    
+    # Create synthetic calibration stream with 10px miscalibration
+    miscalibration_pixels = 10.0
+    image_paths = [f"/synthetic/one_shot/image_{i:06d}.png" for i in range(50)]
+    pointcloud_paths = [f"/synthetic/one_shot/cloud_{i:06d}.bin" for i in range(50)]
+    calib_tag = f"miscalib_{miscalibration_pixels:.1f}px"
+    calibration_file = f"/synthetic/calib/one_shot_{calib_tag}.txt"
+    
+    pair = CalibrationStream(
+        name="one_shot",
+        image_paths=image_paths,
+        pointcloud_paths=pointcloud_paths,
+        calibration_file=calibration_file,
+        camera_id="image_02",
+        lidar_id="velodyne",
+    )
+    
+    report = validator.analyze_sequences({"one_shot": pair}, bag_name="one_shot")
+
+    expected_quality = max(0.0, 1.0 - 10.0 / 20.0)
+    assert math.isclose(
+        report.pair_results["one_shot"].geom_edge_score,
+        expected_quality,
+        rel_tol=1e-6,
+    )

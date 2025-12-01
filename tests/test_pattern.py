@@ -229,3 +229,43 @@ def test_pattern_full_pipeline():
     assert len(processed) > 0
     assert isinstance(detection_result, DetectionResult)
     assert report is not None
+
+
+def test_calibration_validator_pattern_quality_decreases_with_miscalibration(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: <buddy name>
+    category: pattern test
+    """
+    from roboqa_temporal.calibration import (
+        CalibrationQualityValidator,
+        CalibrationStream,
+    )
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+
+    miscalibrations = [0.0, 2.0, 5.0, 10.0, 15.0]
+    previous_score = float("inf")
+
+    for idx, mis_px in enumerate(miscalibrations):
+        pair_name = f"pattern_{idx}"
+        
+        # Create synthetic calibration stream
+        image_paths = [f"/synthetic/{pair_name}/image_{i:06d}.png" for i in range(50)]
+        pointcloud_paths = [f"/synthetic/{pair_name}/cloud_{i:06d}.bin" for i in range(50)]
+        calib_tag = f"miscalib_{mis_px:.1f}px"
+        calibration_file = f"/synthetic/calib/{pair_name}_{calib_tag}.txt"
+        
+        pair = CalibrationStream(
+            name=pair_name,
+            image_paths=image_paths,
+            pointcloud_paths=pointcloud_paths,
+            calibration_file=calibration_file,
+            camera_id="image_02",
+            lidar_id="velodyne",
+        )
+        
+        report = validator.analyze_sequences({pair_name: pair}, bag_name=f"pattern_{idx}")
+
+        score = report.pair_results[pair_name].geom_edge_score
+        assert score <= previous_score + 1e-9
+        previous_score = score

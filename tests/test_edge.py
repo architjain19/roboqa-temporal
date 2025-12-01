@@ -168,3 +168,39 @@ def test_anomaly_with_max_severity():
     )
     
     assert anomaly.severity == 1.0
+
+
+def test_calibration_validator_edge_case_extreme_miscalibration(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: <buddy name>
+    category: edge test
+    """
+    import math
+    from roboqa_temporal.calibration import (
+        CalibrationQualityValidator,
+        CalibrationStream,
+    )
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    
+    # Create synthetic calibration stream with extreme 1000px miscalibration
+    miscalibration_pixels = 1000.0
+    image_paths = [f"/synthetic/edge/image_{i:06d}.png" for i in range(50)]
+    pointcloud_paths = [f"/synthetic/edge/cloud_{i:06d}.bin" for i in range(50)]
+    calib_tag = f"miscalib_{miscalibration_pixels:.1f}px"
+    calibration_file = f"/synthetic/calib/edge_{calib_tag}.txt"
+    
+    pair = CalibrationStream(
+        name="edge",
+        image_paths=image_paths,
+        pointcloud_paths=pointcloud_paths,
+        calibration_file=calibration_file,
+        camera_id="image_02",
+        lidar_id="velodyne",
+    )
+    
+    report = validator.analyze_sequences({"edge": pair}, bag_name="edge_case")
+
+    result = report.pair_results["edge"]
+    assert math.isclose(result.geom_edge_score, 0.0)
+    assert not result.overall_pass
