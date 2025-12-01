@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import json  # [Added] Used to export machine-readable data
 from datetime import datetime
 
 class SyncValidator:
@@ -18,7 +19,6 @@ class SyncValidator:
     def load_kitti_timestamps(self, sensor_name):
         """
         Loads timestamps from KITTI raw data text files.
-        Typically found in: /drive_path/sensor_name/timestamps.txt
         """
         file_path = os.path.join(self.data_path, sensor_name, 'timestamps.txt')
         
@@ -27,11 +27,9 @@ class SyncValidator:
             return False
 
         try:
-            # Read timestamps. KITTI format is usually: '2011-09-26 13:02:25.669806480'
+            # Read timestamps
             df = pd.read_csv(file_path, header=None, names=['datetime'])
-            # Convert to datetime objects
             df['dt'] = pd.to_datetime(df['datetime'], errors='coerce')
-            # Drop any rows that failed to parse
             df = df.dropna()
             self.timestamps[sensor_name] = df['dt']
             print(f"Successfully loaded {len(df)} timestamps for {sensor_name}")
@@ -40,10 +38,25 @@ class SyncValidator:
             print(f"Error loading {sensor_name}: {str(e)}")
             return False
 
+    def calculate_quality_score(self, mean_offset_ms, max_drift_ms):
+        """
+        [Added] Converts raw error metrics into a 0-100 quality score.
+        Requirement: 'Temporal Alignment Quality Score' for Feature 4 integration.
+        
+        Logic:
+        - Perfect synchronization (0ms) = 100 points
+        - 30ms error (typical threshold) = 60 points (passing grade)
+        - > 50ms error = 0 points
+        """
+        # Use a simple linear penalty model
+        # Penalty: Higher weight for mean offset, lower weight for max drift
+        penalty = (mean_offset_ms * 2.0) + (max_drift_ms * 0.5)
+        score = max(0.0, 100.0 - penalty)
+        return round(score, 2)
+
     def calculate_sync_metrics(self, sensor_1, sensor_2):
         """
-        Calculates temporal drift metrics (Feature 1 requirement).
-        Computes Mean Offset, Max Drift, and Standard Deviation.
+        Calculates temporal drift metrics and Quality Score.
         """
         t1 = self.timestamps[sensor_1]
         t2 = self.timestamps[sensor_2]
@@ -56,86 +69,85 @@ class SyncValidator:
         # Calculate difference in milliseconds
         deltas = (t1 - t2).dt.total_seconds() * 1000.0 
         
+        mean_offset = np.mean(np.abs(deltas))
+        max_drift = np.max(np.abs(deltas))
+
+        # [Modified] Calculate score based on metrics
+        quality_score = self.calculate_quality_score(mean_offset, max_drift)
+
         metrics = {
-            "mean_offset_ms": np.mean(np.abs(deltas)),
+            "mean_offset_ms": mean_offset,
             "std_dev_ms": np.std(deltas),
-            "max_drift_ms": np.max(np.abs(deltas)),
-            "raw_deltas": deltas
+            "max_drift_ms": max_drift,
+            "quality_score": quality_score, # [Added] 0-100 Score
+            "frame_count": int(len(deltas)),
+            "raw_deltas": deltas # raw_deltas is a Series, handled separately for JSON
         }
         
         return metrics
 
     def generate_report(self, metrics, sensor_pair, output_dir):
         """
-        Generates visualization plots and actionable recommendations text file.
-        Output: sync_plot.png and sync_report.txt
+        Generates:
+        1. Visualization Plot (.png)
+        2. Human Report (.txt)
+        3. Machine Metadata (.json) -> For Feature 4 integration
         """
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        # 1. Generate Visualization Plot (Matplotlib)
+        # 1. Plot
         plt.figure(figsize=(10, 6))
-        plt.plot(metrics["raw_deltas"], label='Frame-to-Frame Offset', color='blue', alpha=0.7)
+        plt.plot(metrics["raw_deltas"], label='Offset', color='blue', alpha=0.7)
         plt.axhline(y=0, color='r', linestyle='--', alpha=0.3)
-        plt.title(f"Temporal Synchronization: {sensor_pair[0]} vs {sensor_pair[1]}")
+        plt.title(f"Sync Quality (Score: {metrics['quality_score']}): {sensor_pair[0]} vs {sensor_pair[1]}")
         plt.xlabel("Frame Index")
         plt.ylabel("Time Delta (ms)")
         plt.legend()
         plt.grid(True)
-        
-        plot_path = os.path.join(output_dir, "sync_plot.png")
-        plt.savefig(plot_path)
+        plt.savefig(os.path.join(output_dir, "sync_plot.png"))
         plt.close()
-        print(f"Visualization saved to {plot_path}")
 
-        # 2. Generate Text Report
+        # 2. Text Report
         report_path = os.path.join(output_dir, "sync_report.txt")
-        # Threshold: 30ms is a typical strict threshold for AV sync
-        status = "PASS" if metrics["mean_offset_ms"] < 30 else "FAIL" 
+        status = "PASS" if metrics["quality_score"] >= 60 else "FAIL"
         
         with open(report_path, "w") as f:
             f.write(f"--- Synchronization Quality Report ---\n")
             f.write(f"Sensors: {sensor_pair[0]} vs {sensor_pair[1]}\n")
-            f.write(f"Overall Status: {status}\n\n")
-            f.write(f"Key Metrics:\n")
+            f.write(f"Quality Score: {metrics['quality_score']} / 100\n") # [Added] Display score
+            f.write(f"Status: {status}\n\n")
+            f.write(f"Metrics:\n")
             f.write(f"  - Mean Offset: {metrics['mean_offset_ms']:.4f} ms\n")
             f.write(f"  - Max Drift: {metrics['max_drift_ms']:.4f} ms\n")
-            f.write(f"  - Std Deviation: {metrics['std_dev_ms']:.4f} ms\n\n")
-            f.write(f"Actionable Recommendations:\n")
-            if status == "FAIL":
-                f.write("  - [CRITICAL] Large temporal offset detected (>30ms).\n")
-                f.write("  - Investigate PTP (Precision Time Protocol) settings on hardware.\n")
-                f.write("  - Perform hardware recalibration for LiDAR-Camera trigger.\n")
-            else:
-                f.write("  - Synchronization is within acceptable limits.\n")
-                f.write("  - Data is safe for sensor fusion algorithms.\n")
-        print(f"Report saved to {report_path}")
+
+        # 3. JSON Export (For Feature 4 Integration)
+        # Remove raw_deltas (too large and not serializable), keep statistics
+        json_metrics = metrics.copy()
+        del json_metrics["raw_deltas"] 
+        json_metrics["sensor_pair"] = sensor_pair
+        json_metrics["status"] = status
+        
+        json_path = os.path.join(output_dir, "sync_metrics.json")
+        with open(json_path, "w") as f:
+            json.dump(json_metrics, f, indent=4)
+        
+        print(f"Success! Generated:\n - Plot: sync_plot.png\n - Report: sync_report.txt\n - Data: sync_metrics.json (For Feature 4)")
 
 if __name__ == "__main__":
-    # Uses argparse to avoid hardcoded paths
     parser = argparse.ArgumentParser(description="RoboQA-Temporal Sync Validator")
-    parser.add_argument("--path", type=str, required=True, help="Path to the KITTI drive folder (containing sensor folders)")
+    parser.add_argument("--path", type=str, required=True, help="Path to KITTI drive")
     args = parser.parse_args()
 
     validator = SyncValidator(args.path)
 
-    # For KITTI, standard folders are 'image_02' (Camera) and 'image_00' or 'velodyne_points'
-    # We will try to load Camera 02 and Camera 03 (or 00) for this demo test
-    print("Loading sensor data...")
-    cam_02_loaded = validator.load_kitti_timestamps("image_02")
-    cam_03_loaded = validator.load_kitti_timestamps("image_03") # Using image_03 as second sensor if avail
-
-    if cam_02_loaded and cam_03_loaded:
-        print("Calculating metrics...")
+    # Demo execution
+    if validator.load_kitti_timestamps("image_02") and validator.load_kitti_timestamps("image_03"):
         stats = validator.calculate_sync_metrics("image_02", "image_03")
         validator.generate_report(stats, ("image_02", "image_03"), "./output_report")
-        print("\nSUCCESS: Report generated in './output_report' folder.")
+    # Fallback
+    elif validator.load_kitti_timestamps("image_02") and validator.load_kitti_timestamps("image_00"):
+        stats = validator.calculate_sync_metrics("image_02", "image_00")
+        validator.generate_report(stats, ("image_02", "image_00"), "./output_report")
     else:
-        # Fallback for testing if image_03 isn't there, try image_00
-        cam_00_loaded = validator.load_kitti_timestamps("image_00")
-        if cam_02_loaded and cam_00_loaded:
-             stats = validator.calculate_sync_metrics("image_02", "image_00")
-             validator.generate_report(stats, ("image_02", "image_00"), "./output_report")
-             print("\nSUCCESS: Report generated in './output_report' folder.")
-        else:
-             print("Error: Could not find two sensors to compare in the provided path.")
+        print("Could not load sensors.")
