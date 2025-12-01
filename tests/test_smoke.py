@@ -73,7 +73,7 @@ def test_report_generator_instantiation():
 
 def test_calibration_validator_smoke(tmp_path):
     """author: Dharineesh Somisetty
-    reviewer: <buddy name>
+    reviewer: Archit Jain
     category: smoke test
     """
     from roboqa_temporal.calibration import (

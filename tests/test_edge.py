@@ -172,7 +172,7 @@ def test_anomaly_with_max_severity():
 
 def test_calibration_validator_edge_case_extreme_miscalibration(tmp_path):
     """author: Dharineesh Somisetty
-    reviewer: <buddy name>
+    reviewer: Archit Jain
     category: edge test
     """
     import math

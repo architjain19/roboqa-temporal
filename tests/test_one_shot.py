@@ -164,7 +164,7 @@ def test_detection_result_creation():
 
 def test_calibration_validator_one_shot(tmp_path):
     """author: Dharineesh Somisetty
-    reviewer: <buddy name>
+    reviewer: Archit Jain
     category: one-shot test
     """
     import math

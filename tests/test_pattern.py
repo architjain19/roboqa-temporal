@@ -233,7 +233,7 @@ def test_pattern_full_pipeline():
 
 def test_calibration_validator_pattern_quality_decreases_with_miscalibration(tmp_path):
     """author: Dharineesh Somisetty
-    reviewer: <buddy name>
+    reviewer: Archit Jain
     category: pattern test
     """
     from roboqa_temporal.calibration import (
