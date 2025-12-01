@@ -160,3 +160,75 @@ def test_calibration_quality_parameter_file(tmp_path):
     assert "cam_lidar_off" in html_content
     assert "FAIL" in html_content  # off_pair should fail
 
+
+def test_calibration_validator_smoke(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: <buddy name>
+    category: smoke test
+    """
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    pairs = {"smoke_pair": _make_synthetic_pair("smoke", miscalibration_pixels=2.0)}
+
+    report = validator.analyze_sequences(
+        pairs,
+        bag_name="smoke_bag",
+        include_visualizations=False,
+    )
+
+    assert report.metrics["edge_alignment_score"] > 0.0
+
+
+def test_calibration_validator_one_shot(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: <buddy name>
+    category: one-shot test
+    """
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    pair = _make_synthetic_pair("one_shot", miscalibration_pixels=10.0)
+    report = validator.analyze_sequences({"one_shot": pair}, bag_name="one_shot")
+
+    expected_quality = max(0.0, 1.0 - 10.0 / 20.0)
+    assert math.isclose(
+        report.pair_results["one_shot"].geom_edge_score,
+        expected_quality,
+        rel_tol=1e-6,
+    )
+
+
+def test_calibration_validator_edge_case_extreme_miscalibration(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: <buddy name>
+    category: edge test
+    """
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    pair = _make_synthetic_pair("edge", miscalibration_pixels=1000.0)
+    report = validator.analyze_sequences({"edge": pair}, bag_name="edge_case")
+
+    result = report.pair_results["edge"]
+    assert math.isclose(result.geom_edge_score, 0.0)
+    assert not result.overall_pass
+
+
+def test_calibration_validator_pattern_quality_decreases_with_miscalibration(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: <buddy name>
+    category: pattern test
+    """
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+
+    miscalibrations = [0.0, 2.0, 5.0, 10.0, 15.0]
+    previous_score = float("inf")
+
+    for idx, mis_px in enumerate(miscalibrations):
+        pair_name = f"pattern_{idx}"
+        pair = _make_synthetic_pair(pair_name, miscalibration_pixels=mis_px)
+        report = validator.analyze_sequences({pair_name: pair}, bag_name=f"pattern_{idx}")
+
+        score = report.pair_results[pair_name].geom_edge_score
+        assert score <= previous_score + 1e-9
+        previous_score = score
+
