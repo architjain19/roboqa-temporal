@@ -100,13 +100,22 @@ Examples:
     parser.add_argument(
         "--voxel-size",
         type=float,
-        help="Voxel size for downsampling (default: no downsampling)",
+        help="Voxel size for downsampling (default: no downsampling). "
+             "Recommended for large point clouds (e.g., 0.1 for KITTI)",
     )
 
     parser.add_argument(
         "--no-outlier-removal",
         action="store_true",
         help="Disable outlier removal",
+    )
+
+    parser.add_argument(
+        "--max-points-for-outliers",
+        type=int,
+        default=50000,
+        help="Maximum number of points for outlier removal (default: 50000). "
+             "Prevents memory issues with large point clouds",
     )
 
     parser.add_argument(
@@ -150,6 +159,7 @@ Examples:
     max_frames = args.max_frames or config.get("max_frames")
     voxel_size = args.voxel_size or config.get("preprocessing", {}).get("voxel_size")
     remove_outliers = not args.no_outlier_removal and config.get("preprocessing", {}).get("remove_outliers", True)
+    max_points_for_outliers = args.max_points_for_outliers or config.get("preprocessing", {}).get("max_points_for_outliers", 50000)
     output_format = args.output or config.get("output", "all")
     output_dir = args.output_dir or config.get("output_dir", "reports")
     include_plots = not args.no_plots
@@ -202,6 +212,7 @@ Examples:
             preprocessor = Preprocessor(
                 voxel_size=voxel_size,
                 remove_outliers=remove_outliers,
+                max_points_for_outliers=max_points_for_outliers,
             )
             frames = preprocessor.process_sequence(frames)
             print(f"Processed {len(frames)} frames")

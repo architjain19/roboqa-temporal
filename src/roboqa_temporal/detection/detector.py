@@ -145,6 +145,7 @@ class AnomalyDetector:
         # Run each detector
         for detector_name, detector in self.detectors.items():
             try:
+                print(f"  Running {detector_name} detector...")
                 result = detector.detect(frames)
                 detector_results[detector_name] = result
 
@@ -153,6 +154,7 @@ class AnomalyDetector:
                     result, frames, detector_name
                 )
                 all_anomalies.extend(anomalies)
+                print(f"    Found {len(anomalies)} {detector_name} anomalies")
             except Exception as e:
                 print(f"Warning: Detector {detector_name} failed: {e}")
 

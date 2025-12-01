@@ -26,7 +26,7 @@ removal, time alignment, and normalization.
 
 from typing import List, Optional, Tuple
 import numpy as np
-from scipy.spatial.distance import cdist
+from scipy.spatial import KDTree
 from sklearn.neighbors import LocalOutlierFactor
 
 try:
@@ -55,6 +55,7 @@ class Preprocessor:
         remove_outliers: bool = True,
         outlier_method: str = "statistical",
         outlier_params: Optional[dict] = None,
+        max_points_for_outliers: int = 50000,
     ):
         """
         Initialize preprocessor.
@@ -64,11 +65,14 @@ class Preprocessor:
             remove_outliers: Whether to remove outliers
             outlier_method: Method for outlier removal ('statistical', 'radius', 'lof')
             outlier_params: Parameters for outlier removal
+            max_points_for_outliers: Maximum number of points to apply outlier removal
+                                     (prevents memory issues with large point clouds)
         """
         self.voxel_size = voxel_size
         self.remove_outliers = remove_outliers
         self.outlier_method = outlier_method
         self.outlier_params = outlier_params or {}
+        self.max_points_for_outliers = max_points_for_outliers
 
     def process_frame(self, frame: PointCloudFrame) -> PointCloudFrame:
         """
@@ -81,24 +85,36 @@ class Preprocessor:
             Processed point cloud frame
         """
         points = frame.points.copy()
+        intensities = frame.intensities
+        colors = frame.colors
 
         # Downsampling
         if self.voxel_size is not None:
-            points = self._voxel_downsample(points)
+            points, intensities, colors = self._voxel_downsample_with_attributes(
+                points, intensities, colors
+            )
 
         # Outlier removal
         if self.remove_outliers and len(points) > 0:
-            points, mask = self._remove_outliers(points)
-            # Apply mask to intensities and colors if they exist
-            intensities = None
-            colors = None
-            if frame.intensities is not None and len(frame.intensities) == len(frame.points):
-                intensities = frame.intensities[mask] if mask is not None else frame.intensities
-            if frame.colors is not None and len(frame.colors) == len(frame.points):
-                colors = frame.colors[mask] if mask is not None else frame.colors
-        else:
-            intensities = frame.intensities
-            colors = frame.colors
+            # Skipping outlier removal for very large point clouds to avoid memory issues
+            if len(points) > self.max_points_for_outliers:
+                print(f"Warning: Skipping outlier removal for {len(points)} points "
+                      f"(exceeds limit of {self.max_points_for_outliers}). "
+                      f"Consider using voxel downsampling first.")
+            else:
+                # Track original length before filtering
+                original_length = len(points)
+                points, mask = self._remove_outliers(points)
+                
+                if intensities is not None and len(intensities) == original_length:
+                    intensities = intensities[mask] if mask is not None else intensities
+                else:
+                    intensities = None
+                
+                if colors is not None and len(colors) == original_length:
+                    colors = colors[mask] if mask is not None else colors
+                else:
+                    colors = None
 
         return PointCloudFrame(
             timestamp=frame.timestamp,
@@ -122,6 +138,55 @@ class Preprocessor:
         """
         return [self.process_frame(frame) for frame in frames]
 
+    def _voxel_downsample_with_attributes(
+        self,
+        points: np.ndarray,
+        intensities: Optional[np.ndarray],
+        colors: Optional[np.ndarray],
+    ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
+        """
+        Downsample points using voxel grid, preserving indices for attributes.
+
+        Args:
+            points: Point cloud (N, 3)
+            intensities: Intensity values (N,) or None
+            colors: Color values (N, 3) or None
+
+        Returns:
+            Tuple of (downsampled_points, downsampled_intensities, downsampled_colors)
+        """
+        if not OPEN3D_AVAILABLE:
+            # Fallback to simple grid-based downsampling with indices
+            return self._simple_voxel_downsample_with_attributes(points, intensities, colors)
+
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points)
+        
+        # Downsample and get indices
+        downsampled_pcd, _, indices = pcd.voxel_down_sample_and_trace(
+            voxel_size=self.voxel_size,
+            min_bound=pcd.get_min_bound(),
+            max_bound=pcd.get_max_bound(),
+        )
+        
+        downsampled_points = np.asarray(downsampled_pcd.points)
+        
+        # Average attributes within each voxel
+        downsampled_intensities = None
+        downsampled_colors = None
+        
+        if intensities is not None and len(intensities) == len(points):
+            downsampled_intensities = np.array([
+                np.mean(intensities[idx]) for idx in indices
+            ])
+        
+        if colors is not None and len(colors) == len(points):
+            downsampled_colors = np.array([
+                np.mean(colors[idx], axis=0) for idx in indices
+            ])
+        
+        return downsampled_points, downsampled_intensities, downsampled_colors
+
     def _voxel_downsample(self, points: np.ndarray) -> np.ndarray:
         """
         Downsample points using voxel grid.
@@ -140,6 +205,39 @@ class Preprocessor:
         pcd.points = o3d.utility.Vector3dVector(points)
         pcd = pcd.voxel_down_sample(voxel_size=self.voxel_size)
         return np.asarray(pcd.points)
+
+    def _simple_voxel_downsample_with_attributes(
+        self,
+        points: np.ndarray,
+        intensities: Optional[np.ndarray],
+        colors: Optional[np.ndarray],
+    ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
+        """
+        Simple voxel-based downsampling without Open3D, preserving attributes.
+
+        Args:
+            points: Point cloud (N, 3)
+            intensities: Intensity values (N,) or None
+            colors: Color values (N, 3) or None
+
+        Returns:
+            Tuple of (downsampled_points, downsampled_intensities, downsampled_colors)
+        """
+        if len(points) == 0:
+            return points, intensities, colors
+
+        # Create voxel grid
+        voxel_indices = np.floor(points / self.voxel_size).astype(int)
+
+        _, unique_indices = np.unique(
+            voxel_indices, axis=0, return_index=True
+        )
+        
+        downsampled_points = points[unique_indices]
+        downsampled_intensities = intensities[unique_indices] if intensities is not None else None
+        downsampled_colors = colors[unique_indices] if colors is not None else None
+        
+        return downsampled_points, downsampled_intensities, downsampled_colors
 
     def _simple_voxel_downsample(self, points: np.ndarray) -> np.ndarray:
         """
@@ -192,6 +290,7 @@ class Preprocessor:
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Remove outliers using statistical method (mean distance).
+        Uses KD-tree for computing memory-efficient nearest neighbor search.
 
         Args:
             points: Point cloud (N, 3)
@@ -205,12 +304,10 @@ class Preprocessor:
         if len(points) < nb_neighbors + 1:
             return points, np.ones(len(points), dtype=bool)
 
-        # Compute distances to k nearest neighbors
-        distances = cdist(points, points)
-        # Sort and take k nearest (excluding self)
-        k_distances = np.partition(distances, nb_neighbors + 1, axis=1)[
-            :, 1 : nb_neighbors + 1
-        ]
+        # Using KD-tree for efficient nearest neighbor search
+        tree = KDTree(points)
+        distances, _ = tree.query(points, k=nb_neighbors + 1)
+        k_distances = distances[:, 1:]
         mean_distances = np.mean(k_distances, axis=1)
 
         # Compute threshold
@@ -227,6 +324,7 @@ class Preprocessor:
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Remove outliers using radius-based method.
+        Uses KD-tree for memory-efficient radius search.
 
         Args:
             points: Point cloud (N, 3)
@@ -240,10 +338,13 @@ class Preprocessor:
         if len(points) == 0:
             return points, np.array([], dtype=bool)
 
-        # Compute distances
-        distances = cdist(points, points)
-        # Count neighbors within radius
-        neighbor_counts = np.sum(distances < radius, axis=1) - 1  # Exclude self
+        # Using KD-tree for efficient radius search
+        tree = KDTree(points)
+        # Querying all neighbors within radius
+        neighbor_counts = np.array([
+            len(tree.query_ball_point(point, radius)) - 1  # Exclude self
+            for point in points
+        ])
 
         # Filter points
         mask = neighbor_counts >= min_neighbors
