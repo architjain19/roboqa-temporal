@@ -115,8 +115,25 @@ roboqa path/to/bag_file.db3 --config path/to/config.yaml
 
 # Combined usage
 roboqa path/to/bag_file.db3 --output html --max-frames 1000 --config path/to/config.yaml 
-
 ```
+
+### Handling Large Point Clouds (KITTI, Outdoor LiDAR)
+
+For datasets with large point clouds (100k+ points per frame), use voxel downsampling to avoid memory issues:
+
+```bash
+# Recommended settings for KITTI or similar large datasets
+roboqa path/to/bag_file.db3 --voxel-size 0.1 --config examples/config_kitti.yaml
+
+# Or use CLI arguments directly
+roboqa path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 50000
+```
+
+**Key parameters:**
+- `--voxel-size 0.1`: Downsample point clouds to ~20-30k points (adjust based on your needs)
+- `--max-points-for-outliers 50000`: Skip outlier removal for point clouds exceeding this limit
+- Use the pre-configured `examples/config_kitti.yaml` for optimal KITTI settings
+
 
 <!-- ### Python API
 
