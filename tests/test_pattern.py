@@ -236,6 +236,7 @@ def test_calibration_validator_pattern_quality_decreases_with_miscalibration(tmp
     reviewer: Archit Jain
     category: pattern test
     """
+    import math
     from roboqa_temporal.calibration import (
         CalibrationQualityValidator,
         CalibrationStream,
@@ -243,7 +244,7 @@ def test_calibration_validator_pattern_quality_decreases_with_miscalibration(tmp
 
     validator = CalibrationQualityValidator(output_dir=str(tmp_path))
 
-    miscalibrations = [0.0, 2.0, 5.0, 10.0, 15.0]
+    miscalibrations = [0.0, 2.0, 5.0, 10.0, 15.0, 25.0]  # Added 25px to verify clamping
     previous_score = float("inf")
 
     for idx, mis_px in enumerate(miscalibrations):
@@ -267,5 +268,11 @@ def test_calibration_validator_pattern_quality_decreases_with_miscalibration(tmp
         report = validator.analyze_sequences({pair_name: pair}, bag_name=f"pattern_{idx}")
 
         score = report.pair_results[pair_name].geom_edge_score
+        
+        # Verify monotonic decrease (or equal when clamped at 0.0)
         assert score <= previous_score + 1e-9
         previous_score = score
+        
+        # Verify score is clamped at 0.0 for miscalib > max_px
+        if mis_px > 20.0:  # max_px default
+            assert math.isclose(score, 0.0, abs_tol=1e-9)

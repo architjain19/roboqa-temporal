@@ -183,15 +183,15 @@ def test_calibration_validator_edge_case_extreme_miscalibration(tmp_path):
 
     validator = CalibrationQualityValidator(output_dir=str(tmp_path))
     
-    # Create synthetic calibration stream with extreme 1000px miscalibration
-    miscalibration_pixels = 1000.0
-    image_paths = [f"/synthetic/edge/image_{i:06d}.png" for i in range(50)]
-    pointcloud_paths = [f"/synthetic/edge/cloud_{i:06d}.bin" for i in range(50)]
-    calib_tag = f"miscalib_{miscalibration_pixels:.1f}px"
-    calibration_file = f"/synthetic/calib/edge_{calib_tag}.txt"
+    # Create synthetic calibration stream with extreme miscalibration (1000px)
+    extreme_miscalibration = 1000.0
+    image_paths = [f"/synthetic/extreme/image_{i:06d}.png" for i in range(20)]
+    pointcloud_paths = [f"/synthetic/extreme/cloud_{i:06d}.bin" for i in range(20)]
+    calib_tag = f"miscalib_{extreme_miscalibration:.1f}px"
+    calibration_file = f"/synthetic/calib/extreme_{calib_tag}.txt"
     
     pair = CalibrationStream(
-        name="edge",
+        name="extreme_test",
         image_paths=image_paths,
         pointcloud_paths=pointcloud_paths,
         calibration_file=calibration_file,
@@ -199,8 +199,56 @@ def test_calibration_validator_edge_case_extreme_miscalibration(tmp_path):
         lidar_id="velodyne",
     )
     
-    report = validator.analyze_sequences({"edge": pair}, bag_name="edge_case")
+    report = validator.analyze_sequences(
+        {"extreme_test": pair},
+        bag_name="extreme",
+        include_visualizations=False,
+    )
 
-    result = report.pair_results["edge"]
-    assert math.isclose(result.geom_edge_score, 0.0)
-    assert not result.overall_pass
+    # With extreme miscalibration, quality should be clamped at 0.0
+    actual_score = report.pair_results["extreme_test"].geom_edge_score
+    assert math.isclose(actual_score, 0.0, abs_tol=1e-9)
+    assert not report.pair_results["extreme_test"].overall_pass
+    assert len(report.recommendations) > 0
+
+
+def test_calibration_validator_edge_case_beyond_max(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: Archit Jain
+    category: edge test
+    
+    Verify score clamping at 0.0 for miscalib > max_px (25px > 20px default)
+    """
+    import math
+    from roboqa_temporal.calibration import (
+        CalibrationQualityValidator,
+        CalibrationStream,
+    )
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    
+    # Create calibration with miscalibration slightly beyond max_px
+    miscalibration_pixels = 25.0  # Greater than default max_px of 20.0
+    image_paths = [f"/synthetic/beyond/image_{i:06d}.png" for i in range(15)]
+    pointcloud_paths = [f"/synthetic/beyond/cloud_{i:06d}.bin" for i in range(15)]
+    calib_tag = f"miscalib_{miscalibration_pixels:.1f}px"
+    calibration_file = f"/synthetic/calib/beyond_{calib_tag}.txt"
+    
+    pair = CalibrationStream(
+        name="beyond_test",
+        image_paths=image_paths,
+        pointcloud_paths=pointcloud_paths,
+        calibration_file=calibration_file,
+        camera_id="image_02",
+        lidar_id="velodyne",
+    )
+
+    report = validator.analyze_sequences(
+        {"beyond_test": pair},
+        bag_name="beyond_max",
+        include_visualizations=False,
+    )
+
+    # Score should be clamped at 0.0
+    actual_score = report.pair_results["beyond_test"].geom_edge_score
+    assert math.isclose(actual_score, 0.0, abs_tol=1e-9)

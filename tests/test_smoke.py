@@ -76,6 +76,7 @@ def test_calibration_validator_smoke(tmp_path):
     reviewer: Archit Jain
     category: smoke test
     """
+    import math
     from roboqa_temporal.calibration import (
         CalibrationQualityValidator,
         CalibrationStream,
@@ -83,25 +84,27 @@ def test_calibration_validator_smoke(tmp_path):
 
     validator = CalibrationQualityValidator(output_dir=str(tmp_path))
     
-    # Create a simple synthetic calibration stream
-    image_paths = [f"/synthetic/smoke/image_{i:06d}.png" for i in range(50)]
-    pointcloud_paths = [f"/synthetic/smoke/cloud_{i:06d}.bin" for i in range(50)]
-    calibration_file = "/synthetic/calib/smoke_miscalib_2.0px.txt"
+    # Create synthetic calibration stream with minimal miscalibration
+    image_paths = [f"/synthetic/cam_lidar/image_{i:06d}.png" for i in range(10)]
+    pointcloud_paths = [f"/synthetic/cam_lidar/cloud_{i:06d}.bin" for i in range(10)]
+    calibration_file = "/synthetic/calib/cam_lidar_miscalib_0.5px.txt"
     
-    pair = CalibrationStream(
-        name="smoke",
+    cam_lidar = CalibrationStream(
+        name="cam_lidar",
         image_paths=image_paths,
         pointcloud_paths=pointcloud_paths,
         calibration_file=calibration_file,
         camera_id="image_02",
         lidar_id="velodyne",
     )
-    
-    pairs = {"smoke_pair": pair}
+
     report = validator.analyze_sequences(
-        pairs,
-        bag_name="smoke_bag",
+        {"cam_lidar": cam_lidar},
+        bag_name="smoke_test",
         include_visualizations=False,
     )
 
-    assert report.metrics["edge_alignment_score"] > 0.0
+    # Check exact expected score (0.975) with precision tolerance
+    # quality = 1.0 - (0.5 / 20.0) = 0.975
+    assert math.isclose(report.metrics["edge_alignment_score"], 0.975, rel_tol=1e-6)
+    assert report.parameter_file is not None
