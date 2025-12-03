@@ -1,0 +1,343 @@
+"""
+
+################################################################
+
+File: roboqa_temporal/cli/main.py
+Created: 2025-11-20
+Created by: Archit Jain (architj@uw.edu)
+Last Modified: 2025-11-20
+Last Modified by: Archit Jain (architj@uw.edu)
+
+#################################################################
+
+Copyright: RoboQA-Temporal Authors
+License: MIT License
+
+################################################################
+
+Basic usage example for RoboQA-Temporal.
+
+################################################################
+
+"""
+
+import argparse
+import os
+import sys
+from pathlib import Path
+import yaml
+
+from roboqa_temporal.loader import BagLoader
+from roboqa_temporal.preprocessing import Preprocessor
+from roboqa_temporal.detection import AnomalyDetector
+from roboqa_temporal.reporting import ReportGenerator
+from roboqa_temporal.synchronization import TemporalSyncValidator
+
+
+def load_config(config_path: str) -> dict:
+    """Load configuration from YAML file."""
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
+
+
+def main():
+    """Main CLI entry point."""
+    parser = argparse.ArgumentParser(
+        description="RoboQA-Temporal: Automated quality assessment for ROS2 bag files",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Basic usage
+  roboqa bag_file.db3
+
+  # With configuration file
+  roboqa bag_file.db3 --config config.yaml
+
+  # Specify output format
+  roboqa bag_file.db3 --output html --output-dir reports/
+
+  # Limit number of frames
+  roboqa bag_file.db3 --max-frames 1000
+        """,
+    )
+
+    parser.add_argument(
+        "bag_file",
+        type=str,
+        help="Path to ROS2 bag file or directory",
+    )
+
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to configuration YAML file",
+    )
+
+    parser.add_argument(
+        "--topics",
+        nargs="+",
+        help="Point cloud topics to analyze (default: auto-detect)",
+    )
+
+    parser.add_argument(
+        "--output",
+        choices=["markdown", "html", "csv", "all"],
+        default="all",
+        help="Output format (default: all)",
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="reports",
+        help="Output directory for reports (default: reports)",
+    )
+
+    parser.add_argument(
+        "--max-frames",
+        type=int,
+        help="Maximum number of frames to process",
+    )
+
+    parser.add_argument(
+        "--voxel-size",
+        type=float,
+        help="Voxel size for downsampling (default: no downsampling)",
+    )
+
+    parser.add_argument(
+        "--no-outlier-removal",
+        action="store_true",
+        help="Disable outlier removal",
+    )
+
+    parser.add_argument(
+        "--disable-detector",
+        nargs="+",
+        choices=["density", "spatial", "ghost", "temporal"],
+        help="Disable specific detectors",
+    )
+
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        help="Global threshold for anomaly detection (0-1)",
+    )
+
+    parser.add_argument(
+        "--no-plots",
+        action="store_true",
+        help="Disable plot generation in HTML reports",
+    )
+
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Verbose output",
+    )
+
+    parser.add_argument(
+        "--temporal-sync",
+        action="store_true",
+        help="Run the multi-sensor temporal synchronization validator (Feature 1)",
+    )
+
+    parser.add_argument(
+        "--temporal-sync-output",
+        choices=["markdown", "html", "csv", "all"],
+        help="Output format for temporal synchronization reports (default: all)",
+    )
+
+    parser.add_argument(
+        "--temporal-sync-max",
+        type=int,
+        help="Maximum messages per topic used by the temporal synchronization validator",
+    )
+
+    args = parser.parse_args()
+
+    # Load configuration if provided
+    config = {}
+    if args.config:
+        if not Path(args.config).exists():
+            print(f"Error: Configuration file not found: {args.config}")
+            sys.exit(1)
+        config = load_config(args.config)
+
+    # Merge CLI arguments with config (CLI takes precedence)
+    topics = args.topics or config.get("topics")
+    max_frames = args.max_frames or config.get("max_frames")
+    voxel_size = args.voxel_size or config.get("preprocessing", {}).get("voxel_size")
+    remove_outliers = not args.no_outlier_removal and config.get("preprocessing", {}).get("remove_outliers", True)
+    output_format = args.output or config.get("output", "all")
+    output_dir = args.output_dir or config.get("output_dir", "reports")
+    include_plots = not args.no_plots
+
+    # Detector configuration
+    disabled_detectors = args.disable_detector or config.get("detection", {}).get("disabled", [])
+    threshold = args.threshold or config.get("detection", {}).get("threshold", 0.5)
+
+    enable_density = "density" not in disabled_detectors
+    enable_spatial = "spatial" not in disabled_detectors
+    enable_ghost = "ghost" not in disabled_detectors
+    enable_temporal = "temporal" not in disabled_detectors
+
+    temporal_sync_cfg = config.get("temporal_sync", {})
+    temporal_sync_enabled = args.temporal_sync or temporal_sync_cfg.get("enabled", False)
+    temporal_sync_topics = temporal_sync_cfg.get("topics")
+    temporal_sync_thresholds = temporal_sync_cfg.get("approximate_time_threshold_ms")
+    temporal_sync_freq = temporal_sync_cfg.get("frequency_hz")
+    temporal_sync_ptp = temporal_sync_cfg.get("ptp")
+    temporal_sync_output = args.temporal_sync_output or temporal_sync_cfg.get("report_format", "all")
+    temporal_sync_storage_id = temporal_sync_cfg.get("storage_id", "mcap")
+    temporal_sync_max = args.temporal_sync_max or temporal_sync_cfg.get("max_messages")
+    temporal_sync_formats = None if temporal_sync_output == "all" else [temporal_sync_output]
+
+    # Validate bag file
+    bag_path = Path(args.bag_file)
+    if not bag_path.exists():
+        print(f"Error: Bag file not found: {args.bag_file}")
+        sys.exit(1)
+
+    print("=" * 60)
+    print("RoboQA-Temporal: Quality Assessment Tool")
+    print("=" * 60)
+    print(f"Bag file: {bag_path}")
+    print(f"Output directory: {output_dir}")
+    print()
+
+    try:
+        # Initialize components
+        print("Loading bag file...")
+        loader = BagLoader(str(bag_path), topics=topics)
+
+        if args.verbose:
+            topic_info = loader.get_topic_info()
+            print(f"Topics: {list(topic_info.keys())}")
+
+        print("Reading point cloud frames...")
+        frames = loader.read_all_frames(max_frames=max_frames)
+        loader.close()
+
+        if not frames:
+            print("Error: No point cloud frames found in bag file.")
+            sys.exit(1)
+
+        print(f"Loaded {len(frames)} frames")
+        print()
+
+        # Preprocessing
+        if voxel_size is not None or remove_outliers:
+            print("Preprocessing point clouds...")
+            preprocessor = Preprocessor(
+                voxel_size=voxel_size,
+                remove_outliers=remove_outliers,
+            )
+            frames = preprocessor.process_sequence(frames)
+            print(f"Processed {len(frames)} frames")
+            print()
+
+        # Anomaly detection
+        print("Running anomaly detection...")
+        detector = AnomalyDetector(
+            enable_density_detection=enable_density,
+            enable_spatial_detection=enable_spatial,
+            enable_ghost_detection=enable_ghost,
+            enable_temporal_detection=enable_temporal,
+            density_threshold=threshold,
+            spatial_threshold=threshold,
+            ghost_threshold=threshold,
+            temporal_threshold=threshold,
+        )
+
+        result = detector.detect(frames)
+        print(f"Detected {len(result.anomalies)} anomalies")
+        print(f"Overall health score: {result.health_metrics.get('overall_health_score', 0):.2%}")
+        print()
+
+        # Generate reports
+        print("Generating reports...")
+        report_generator = ReportGenerator(output_dir=output_dir)
+        output_files = report_generator.generate(
+            result=result,
+            bag_path=str(bag_path),
+            output_format=output_format,
+            include_plots=include_plots,
+        )
+
+        sync_report = None
+        if temporal_sync_enabled:
+            print()
+            print("Running temporal synchronization validator...")
+            validator = TemporalSyncValidator(
+                topics=temporal_sync_topics,
+                expected_frequency_hz=temporal_sync_freq,
+                approximate_time_threshold_ms=temporal_sync_thresholds,
+                storage_id=temporal_sync_storage_id,
+                ptp_config=temporal_sync_ptp,
+                output_dir=os.path.join(output_dir, "temporal_sync"),
+                report_formats=temporal_sync_formats,
+            )
+            sync_report = validator.validate(
+                str(bag_path),
+                max_messages_per_topic=temporal_sync_max,
+                include_visualizations=include_plots,
+            )
+
+        print()
+        print("=" * 60)
+        print("Analysis Complete!")
+        print("=" * 60)
+        print("Generated reports:")
+        for format_name, file_path in output_files.items():
+            print(f"  {format_name.upper()}: {file_path}")
+
+        if sync_report:
+            print()
+            print("Temporal Synchronization Summary")
+            print("-" * 40)
+            if sync_report.report_files:
+                print("Report files:")
+                for fmt, file_path in sync_report.report_files.items():
+                    print(f"  {fmt.upper()}: {file_path}")
+                print()
+            for key, value in sync_report.metrics.items():
+                print(f"{key}: {value:.4f}")
+            for pair_key, pair in sync_report.pair_results.items():
+                print(
+                    f"{pair_key}: max Δt={pair.max_delta_ms:.2f} ms, "
+                    f"score={pair.temporal_offset_score:.2f}, "
+                    f"PTP={'PASS' if pair.ptp_pass else 'FAIL'}"
+                )
+            if sync_report.recommendations:
+                print("\nRecommendations:")
+                for rec in sync_report.recommendations:
+                    print(f"- {rec}")
+            if sync_report.compliance_flags:
+                print("\nCompliance Flags:")
+                for flag in sync_report.compliance_flags:
+                    print(f"- {flag}")
+            if sync_report.parameter_file:
+                print(f"\nTimestamp corrections: {sync_report.parameter_file}")
+
+        print()
+        print("Summary:")
+        print(f"  Total frames: {len(frames)}")
+        print(f"  Anomalies detected: {len(result.anomalies)}")
+        print(f"  Health score: {result.health_metrics.get('overall_health_score', 0):.2%}")
+
+    except KeyboardInterrupt:
+        print("\n\nAnalysis interrupted by user.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\nError: {e}")
+        if args.verbose:
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
