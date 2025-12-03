@@ -128,7 +128,7 @@ pip install -e .
 - `tqdm` >= 4.62.0
 - `tabulate` >= 0.9.0
 - `lark-parser` >= 0.12.0
-
+- `plotly` >= 5.23.0
 
 ## Testing
 
