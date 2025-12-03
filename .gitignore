@@ -19,4 +19,5 @@ reports/
 dataset/
 
 # Tests
-.coverage*
+.coverage*data/sequences/
+scripts/
