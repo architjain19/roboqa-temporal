@@ -1,10 +1,10 @@
+# Feature 1: Synchronization Validator Implementation
 import os
 import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import json  # [Added] Used to export machine-readable data
-from datetime import datetime
 
 class SyncValidator:
     """
@@ -113,11 +113,11 @@ class SyncValidator:
         status = "PASS" if metrics["quality_score"] >= 60 else "FAIL"
         
         with open(report_path, "w") as f:
-            f.write(f"--- Synchronization Quality Report ---\n")
+            f.write("--- Synchronization Quality Report ---\n")
             f.write(f"Sensors: {sensor_pair[0]} vs {sensor_pair[1]}\n")
             f.write(f"Quality Score: {metrics['quality_score']} / 100\n") # [Added] Display score
             f.write(f"Status: {status}\n\n")
-            f.write(f"Metrics:\n")
+            f.write("Metrics:\n")
             f.write(f"  - Mean Offset: {metrics['mean_offset_ms']:.4f} ms\n")
             f.write(f"  - Max Drift: {metrics['max_drift_ms']:.4f} ms\n")
 
@@ -132,7 +132,7 @@ class SyncValidator:
         with open(json_path, "w") as f:
             json.dump(json_metrics, f, indent=4)
         
-        print(f"Success! Generated:\n - Plot: sync_plot.png\n - Report: sync_report.txt\n - Data: sync_metrics.json (For Feature 4)")
+        print("Success! Generated:\n - Plot: sync_plot.png\n - Report: sync_report.txt\n - Data: sync_metrics.json (For Feature 4)")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RoboQA-Temporal Sync Validator")
