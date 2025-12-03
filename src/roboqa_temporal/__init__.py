@@ -25,15 +25,36 @@ for multi-sensor robotics datasets, with focus on ROS2 bag files.
 __version__ = "0.1.0"
 __author__ = "Archit Jain"
 
-from roboqa_temporal.loader import BagLoader
-from roboqa_temporal.preprocessing import Preprocessor
-from roboqa_temporal.detection import AnomalyDetector
-from roboqa_temporal.reporting import ReportGenerator
+__all__ = []
 
-__all__ = [
-    "BagLoader",
-    "Preprocessor",
-    "AnomalyDetector",
-    "ReportGenerator",
-]
+try:
+    from roboqa_temporal.loader import BagLoader
 
+    __all__.append("BagLoader")
+except ImportError:  # pragma: no cover - requires ROS
+    BagLoader = None  # type: ignore
+
+try:
+    from roboqa_temporal.preprocessing import Preprocessor
+
+    __all__.append("Preprocessor")
+except ImportError:  # pragma: no cover
+    Preprocessor = None  # type: ignore
+
+try:
+    from roboqa_temporal.detection import AnomalyDetector
+
+    __all__.append("AnomalyDetector")
+except ImportError:  # pragma: no cover
+    AnomalyDetector = None  # type: ignore
+
+try:
+    from roboqa_temporal.reporting import ReportGenerator
+
+    __all__.append("ReportGenerator")
+except ImportError:  # pragma: no cover
+    ReportGenerator = None  # type: ignore
+
+from roboqa_temporal.synchronization import TemporalSyncValidator
+
+__all__.append("TemporalSyncValidator")

@@ -160,3 +160,87 @@ def test_detection_result_creation():
     assert len(result.anomalies) == 1
     assert result.health_metrics["overall_health_score"] == 0.8
     assert len(result.frame_statistics) == 1
+
+
+def test_calibration_validator_one_shot(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: Archit Jain
+    category: one-shot test
+    """
+    import math
+    from roboqa_temporal.calibration import (
+        CalibrationQualityValidator,
+        CalibrationStream,
+    )
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    
+    # Create synthetic calibration stream with 10px miscalibration
+    miscalibration_pixels = 10.0
+    image_paths = [f"/synthetic/one_shot/image_{i:06d}.png" for i in range(30)]
+    pointcloud_paths = [f"/synthetic/one_shot/cloud_{i:06d}.bin" for i in range(30)]
+    calib_tag = f"miscalib_{miscalibration_pixels:.1f}px"
+    calibration_file = f"/synthetic/calib/one_shot_{calib_tag}.txt"
+    
+    pair = CalibrationStream(
+        name="one_shot_test",
+        image_paths=image_paths,
+        pointcloud_paths=pointcloud_paths,
+        calibration_file=calibration_file,
+        camera_id="image_02",
+        lidar_id="velodyne",
+    )
+    
+    report = validator.analyze_sequences(
+        {"one_shot_test": pair},
+        bag_name="one_shot",
+        include_visualizations=False,
+    )
+
+    # Expected quality score with 10px miscalibration (max_px default is 20.0)
+    # quality = 1.0 - (10.0 / 20.0) = 0.5
+    expected_score = 0.5
+    actual_score = report.pair_results["one_shot_test"].geom_edge_score
+    assert math.isclose(actual_score, expected_score, rel_tol=1e-6)
+
+
+def test_calibration_validator_perfect_calibration(tmp_path):
+    """author: Dharineesh Somisetty
+    reviewer: Archit Jain
+    category: one-shot test
+    
+    Complementary test for filename with no miscalib tag to ensure score = 1.0
+    """
+    import math
+    from roboqa_temporal.calibration import (
+        CalibrationQualityValidator,
+        CalibrationStream,
+    )
+
+    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
+    
+    # Create synthetic calibration stream with no miscalib tag in filename
+    image_paths = [f"/synthetic/perfect/image_{i:06d}.png" for i in range(20)]
+    pointcloud_paths = [f"/synthetic/perfect/cloud_{i:06d}.bin" for i in range(20)]
+    calibration_file = "/synthetic/calib/perfect_cam_lidar.txt"  # No miscalib tag
+    
+    pair = CalibrationStream(
+        name="perfect_test",
+        image_paths=image_paths,
+        pointcloud_paths=pointcloud_paths,
+        calibration_file=calibration_file,
+        camera_id="image_02",
+        lidar_id="velodyne",
+    )
+
+    report = validator.analyze_sequences(
+        {"perfect_test": pair},
+        bag_name="perfect",
+        include_visualizations=False,
+    )
+
+    # With no miscalib tag, _extract_miscalib_pixels should return 0.0
+    # quality = 1.0 - (0.0 / 20.0) = 1.0
+    actual_score = report.pair_results["perfect_test"].geom_edge_score
+    assert math.isclose(actual_score, 1.0, rel_tol=1e-6)
+    assert report.pair_results["perfect_test"].overall_pass

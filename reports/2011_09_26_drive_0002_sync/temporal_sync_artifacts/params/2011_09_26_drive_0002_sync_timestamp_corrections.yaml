@@ -1,0 +1,23 @@
+metadata:
+  bag_name: 2011_09_26_drive_0002_sync
+  generated_at: '2025-11-23T06:44:16.038091Z'
+  iso_8000_61: true
+temporal_corrections:
+  camera_imu:
+    mean_offset_ms: -0.13505019150771103
+  camera_imu_camera:
+    suggested_offset_ms: -0.13505019150771103
+  camera_imu_imu:
+    suggested_offset_ms: 0.13505019150771103
+  camera_lidar:
+    mean_offset_ms: 68.9615738856328
+  camera_lidar_camera:
+    suggested_offset_ms: 68.9615738856328
+  camera_lidar_lidar:
+    suggested_offset_ms: -68.9615738856328
+  lidar_imu:
+    mean_offset_ms: -69.0966240771405
+  lidar_imu_imu:
+    suggested_offset_ms: 69.0966240771405
+  lidar_imu_lidar:
+    suggested_offset_ms: -69.0966240771405
