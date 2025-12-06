@@ -17,3 +17,7 @@ reports/
 
 # Datasets
 dataset/
+output_report/
+2011_09_26/
+*.png
+*.zip
