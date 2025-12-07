@@ -34,7 +34,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from roboqa_temporal.detection.detector import DetectionResult, Anomaly
+from roboqa_temporal.detection import DetectionResult, Anomaly
 
 
 class ReportGenerator:
