@@ -33,8 +33,8 @@ roboqa-temporal/
 │       └── __init__.py
 ├── tests/                    # Unit tests
 │   ├── __init__.py
-│   ├── test_preprocessing.py
-│   └── test_detection.py
+│   ├── test_detection.py
+│   └── ..(other tests)..
 ├── examples/                 # Example scripts and configs
 │   ├── basic_usage.py
 │   ├── synthetic_data_generator.py
@@ -44,7 +44,6 @@ roboqa-temporal/
 ├── README.md                 # Main documentation (project overview)
 ├── CONTRIBUTING.md           # Contribution guidelines
 ├── LICENSE                   # MIT License
-├── setup.py                  # Setup script
 ├── pyproject.toml            # Modern Python project configuration
 ├── requirements.txt          # Python dependencies
 └── .gitignore               # Git ignore rules
