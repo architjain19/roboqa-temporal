@@ -9,7 +9,7 @@ malformed inputs, etc.
 import pytest
 import numpy as np
 from roboqa_temporal.detection import AnomalyDetector
-from roboqa_temporal.detection.detector import Anomaly, DetectionResult
+from roboqa_temporal.detection import Anomaly, DetectionResult
 from roboqa_temporal.loader.bag_loader import PointCloudFrame, BagLoader
 from roboqa_temporal.preprocessing import Preprocessor
 
