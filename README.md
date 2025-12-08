@@ -100,114 +100,114 @@ The integration tests exercise the ROS 2 loader and other anomaly and quality te
 
 ### Usage
 
+RoboQA-Temporal now supports two main operation modes:
+
+#### 1. Anomaly Detection Mode (for ROS2 bags)
+
 ```bash
-# Analyze a ROS2 bag file
-roboqa path/to/bag_file.db3
+# Analyze a ROS2 bag file for anomalies
+roboqa anomaly path/to/bag_file.db3
 
 # Specify output format
-roboqa path/to/bag_file.db3 --output html
+roboqa anomaly path/to/bag_file.db3 --output html
 
 # Limit number of frames
-roboqa path/to/bag_file.db3 --max-frames 1000
+roboqa anomaly path/to/bag_file.db3 --max-frames 1000
 
 # Use configuration file
-roboqa path/to/bag_file.db3 --config path/to/config.yaml
+roboqa anomaly path/to/bag_file.db3 --config examples/config_anomaly_kitti.yaml
 
 # Combined usage
-roboqa path/to/bag_file.db3 --output html --max-frames 1000 --config path/to/config.yaml 
+roboqa anomaly path/to/bag_file.db3 --output html --max-frames 1000 --config examples/config_anomaly_kitti.yaml 
 ```
 
-### Handling Large Point Clouds (KITTI, Outdoor LiDAR)
+#### 2. Synchronization Analysis Mode (for multi-sensor datasets)
+
+```bash
+# Analyze temporal synchronization in a KITTI-format dataset
+roboqa sync dataset/2011_09_26_drive_0005_sync/
+
+# Specify output format
+roboqa sync dataset/2011_09_26_drive_0005_sync/ --output html
+
+# Limit frames and customize output
+roboqa sync dataset/2011_09_26_drive_0005_sync/ --max-frames 500 --output-dir reports/sync/
+
+# Use configuration file for custom sensor mappings and thresholds
+roboqa sync dataset/2011_09_26_drive_0005_sync/ --config examples/config_sync.yaml
+```
+
+### Troubleshooting (Handling Large Point Clouds (KITTI, Outdoor LiDAR))
 
 For datasets with large point clouds (100k+ points per frame), use voxel downsampling to avoid memory issues:
 
 ```bash
 # Recommended settings for KITTI or similar large datasets
-roboqa path/to/bag_file.db3 --voxel-size 0.1 --config examples/config_kitti.yaml
+roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --config examples/config_anomaly_kitti.yaml
 
 # Or use CLI arguments directly
-roboqa path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 50000
+roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 50000
 ```
 
 **Key parameters:**
 - `--voxel-size 0.1`: Downsample point clouds to ~20-30k points (adjust based on your needs)
 - `--max-points-for-outliers 50000`: Skip outlier removal for point clouds exceeding this limit
-- Use the pre-configured `examples/config_kitti.yaml` for optimal KITTI settings
-
-
-<!-- ### Python API
-
-```python
-from roboqa_temporal import BagLoader, Preprocessor, AnomalyDetector, ReportGenerator
-
-# Load bag file
-loader = BagLoader("path/to/bag_file.db3")
-frames = loader.read_all_frames(max_frames=1000)
-loader.close()
-
-# Preprocess
-preprocessor = Preprocessor(voxel_size=0.05, remove_outliers=True)
-frames = preprocessor.process_sequence(frames)
-
-# Detect anomalies
-detector = AnomalyDetector()
-result = detector.detect(frames)
-
-# Generate report
-report_generator = ReportGenerator(output_dir="reports")
-report_generator.generate(result, "bag_file.db3", output_format="all")
-```
-
-## Configuration
-
-Create a YAML configuration file to customize analysis parameters:
-
-```yaml
-# config.yaml
-topics:
-  - /velodyne_points
-
-max_frames: 1000
-
-preprocessing:
-  voxel_size: 0.05
-  remove_outliers: true
-
-detection:
-  threshold: 0.5
-  disabled: []
-
-output: all
-output_dir: reports
-```
-
-See `examples/config_example.yaml` for a complete configuration example. -->
-
-
-
+- Use the pre-configured `examples/config_anomaly_kitti.yaml` for optimal KITTI settings
 
 ## Project Structure
 
 (For more details check [here](PROJECT_STRUCTURE.md))
 
 ```
-RoboQA/
-├── roboqa_temporal/          # Main package
-│   ├── loader/               # ROS2 bag file loader
-│   ├── preprocessing/        # Point cloud preprocessing
-│   ├── detection/            # Anomaly detection algorithms
-│   ├── reporting/            # Report generation
-│   ├── cli/                  # Command-line interface
-├── tests/                    # Unit tests
-├── examples/                 # Example scripts and configs
-├── .docs/                     # Documentation
-└── README.md
+.
+└── roboqa-temporal
+    ├── CONTRIBUTING.md                     # Contributing guidelines
+    ├── dataset/                            # Sample datasets (KITTI format)
+    ├── .docs/                              # Documentation and presentations
+    ├── examples                            # Example scripts and configs
+    │   ├── config_anomaly_example.yaml
+    │   ├── config_anomaly_kitti.yaml
+    │   ├── config_sync.yaml
+    │   ├── example_anomaly.py
+    │   ├── example_sync.py
+    │   └── synthetic_data_generator.py
+    ├── LICENSE                             # MIT License
+    ├── PROJECT_STRUCTURE.md                # Detailed documentation on project structure
+    ├── pyproject.toml
+    ├── README.md
+    ├── reports                             # Output reports directory
+    ├── requirements.txt
+    ├── src
+    │   └── roboqa_temporal                 # Main package
+    │       ├── __init__.py
+    │       ├── cli                         # Command-line interface
+    │       │   └── main.py
+    │       ├── detection                   # Anomaly detection algorithms
+    │       │   ├── detector.py
+    │       │   ├── detectors.py
+    │       ├── loader                      # ROS2 bag file loader
+    │       │   ├── bag_loader.py
+    │       ├── preprocessing               # Point cloud preprocessing
+    │       │   └── preprocessor.py
+    │       ├── reporting                   # Report generation
+    │       │   └── report_generator.py
+    │       └── synchronization             # Cross-modal synchronization analysis
+    │           └── temporal_validator.py
+    └── tests
+        ├── conftest.py
+        ├── test_bag_loader.py
+        ├── test_detection_pipeline.py
+        ├── test_edge.py
+        ├── test_one_shot.py
+        ├── test_pattern.py
+        └── test_smoke.py
 ```
 
 ## Features
 
 ### Core Capabilities
 
+#### 1. Anomaly Detection (for ROS2 bags)
 - **Automated Quality Assessment**: Objective and reproducible health checks for robotics datasets
 - **Point Cloud Anomaly Detection**: Detects various anomalies in point cloud sequences:
   - **Density Drops & Occlusions**: Identifies sudden drops in point density
@@ -215,14 +215,24 @@ RoboQA/
   - **Ghost Points**: Highlights points likely due to reflections, multi-path returns, or hardware artifacts
   - **Temporal Inconsistency**: Quantifies smoothness and consistency in spatio-temporal evolution
 
+#### 2. Cross-Modal Synchronization Analysis (for multi-sensor datasets)
+- **Timestamp Drift Detection**: Measure clock offset and drift between sensor streams (e.g., LiDAR, camera, IMU)
+- **Data Loss & Duplication Flagging**: Identify missing, skipped, or duplicate messages across all sensor topics
+- **Temporal Alignment Quality Score**: Quantify overall synchronization fidelity as a numeric metric per sequence
+- **Multi-Sensor Support**: Works with KITTI and similar dataset formats with timestamp files
+- **Comprehensive Drift Analysis**: Includes chi-square tests, Kalman filtering, and cross-correlation analysis
+
 ### Key Features
 
+- **Dual Operation Modes**: Support for both ROS2 bag anomaly detection and multi-sensor synchronization analysis
 - **ROS2 Bag Support**: Efficient reading and processing of ROS2 bag files
-- **Modular Architecture**: Extensible design with separate modules for loading, preprocessing, detection, and reporting
+- **Multi-Sensor Dataset Support**: Works with KITTI-format datasets and other image sequence formats
+- **Modular Architecture**: Extensible design with separate modules for loading, preprocessing, detection, synchronization, and reporting
 - **Multiple Output Formats**: Generate reports in Markdown, HTML (with visualizations), and CSV
-- **Comprehensive CLI**: Easy-to-use command-line interface
+- **Comprehensive CLI**: Easy-to-use command-line interface with mode selection
 - **Configuration Support**: YAML-based configuration files for flexible parameter tuning
-- **Visualization**: Interactive plots and charts in HTML reports
+- **Visualization**: Interactive plots, temporal heatmaps, and charts in HTML reports
+- **Timestamp Corrections**: Exports recommended timestamp corrections as YAML parameter files
 
 ## Contributing
 
