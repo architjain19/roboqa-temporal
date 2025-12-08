@@ -7,6 +7,11 @@ line of defense to catch major issues.
 """
 
 import pytest
+from typing import List
+import pandas as pd
+
+from .feature4_helpers import metrics_list_to_dataframe
+
 
 
 def test_package_import():
@@ -108,3 +113,25 @@ def test_calibration_validator_smoke(tmp_path):
     # quality = 1.0 - (0.5 / 20.0) = 0.975
     assert math.isclose(report.metrics["edge_alignment_score"], 0.975, rel_tol=1e-6)
     assert report.parameter_file is not None
+
+
+def test_feature4_metrics_list_to_dataframe_smoke():
+    """
+    author: sayali
+    reviewer: Xinxin
+    category: smoke test
+    justification: Unit-level smoke test for converting a small metrics
+                   list into a well-formed DataFrame.
+    """
+    metrics: List[dict] = [
+        {"sequence": "seq_0001", "multimodal_health_score": 0.9},
+        {"sequence": "seq_0002", "multimodal_health_score": 0.6},
+    ]
+
+    df = metrics_list_to_dataframe(metrics)
+
+    assert isinstance(df, pd.DataFrame)
+    assert list(df.columns)[0] == "sequence"
+    assert len(df) == 2
+    assert "multimodal_health_score" in df.columns
+

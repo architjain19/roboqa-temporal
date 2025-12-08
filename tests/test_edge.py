@@ -12,6 +12,10 @@ from roboqa_temporal.detection import AnomalyDetector
 from roboqa_temporal.detection.detector import Anomaly, DetectionResult
 from roboqa_temporal.loader.bag_loader import PointCloudFrame, BagLoader
 from roboqa_temporal.preprocessing import Preprocessor
+from typing import List
+import pandas as pd
+
+from .feature4_helpers import metrics_list_to_dataframe
 
 
 def test_frame_with_zero_points():
@@ -252,3 +256,44 @@ def test_calibration_validator_edge_case_beyond_max(tmp_path):
     # Score should be clamped at 0.0
     actual_score = report.pair_results["beyond_test"].geom_edge_score
     assert math.isclose(actual_score, 0.0, abs_tol=1e-9)
+    
+def test_feature4_metrics_list_to_dataframe_edge_missing_fields():
+    """
+    author: sayali
+    reviewer: Xinxin
+    category: edge test
+    justification: Mixed metrics dictionaries (different keys) should still
+                   produce a DataFrame without crashing; missing values can
+                   appear as NaN but the structure must be consistent.
+    """
+    metrics: List[dict] = [
+        {
+            "sequence": "seq_a",
+            "multimodal_health_score": 0.9,
+            "temporal_score": 0.8,
+        },
+        {
+            "sequence": "seq_b",
+            # no temporal_score here on purpose
+            "multimodal_health_score": 0.4,
+            "anomaly_score": 0.3,
+        },
+    ]
+
+    df = metrics_list_to_dataframe(metrics)
+
+    assert isinstance(df, pd.DataFrame)
+    # Both sequences present
+    assert set(df["sequence"]) == {"seq_a", "seq_b"}
+    # Columns should be the union of keys
+    for col in [
+        "sequence",
+        "multimodal_health_score",
+        "temporal_score",
+        "anomaly_score",
+    ]:
+        assert col in df.columns
+
+    # At least one NaN is expected due to heterogeneous keys
+    assert df.isna().sum().sum() >= 1
+

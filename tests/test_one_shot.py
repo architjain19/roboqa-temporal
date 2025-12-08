@@ -12,6 +12,10 @@ from roboqa_temporal.detection import AnomalyDetector
 from roboqa_temporal.detection.detector import Anomaly, DetectionResult
 from roboqa_temporal.loader.bag_loader import PointCloudFrame
 from roboqa_temporal.preprocessing import Preprocessor
+from typing import List
+import pandas as pd
+
+from .feature4_helpers import metrics_list_to_dataframe
 
 
 def test_anomaly_detector_with_empty_frames():
@@ -244,3 +248,31 @@ def test_calibration_validator_perfect_calibration(tmp_path):
     actual_score = report.pair_results["perfect_test"].geom_edge_score
     assert math.isclose(actual_score, 1.0, rel_tol=1e-6)
     assert report.pair_results["perfect_test"].overall_pass
+    
+
+def test_feature4_metrics_list_to_dataframe_one_shot():
+    """
+    author: sayali
+    reviewer: Xinxin
+    category: one-shot test
+    justification: Ensure a single-metric input still results in a valid
+                   DataFrame with expected columns and finite values.
+    """
+    metrics: List[dict] = [
+        {
+            "sequence": "single_seq",
+            "multimodal_health_score": 0.75,
+            "temporal_score": 0.8,
+            "anomaly_score": 0.6,
+        }
+    ]
+
+    df = metrics_list_to_dataframe(metrics)
+
+    assert isinstance(df, pd.DataFrame)
+    assert list(df["sequence"]) == ["single_seq"]
+    for col in ["multimodal_health_score", "temporal_score", "anomaly_score"]:
+        assert col in df.columns
+        val = float(df.loc[0, col])
+        assert np.isfinite(val)
+
