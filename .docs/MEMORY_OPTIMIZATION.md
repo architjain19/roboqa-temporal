@@ -41,13 +41,13 @@ The existing voxel downsampling feature is now the recommended first step for la
 
 ```bash
 # Option 1: Use the pre-configured KITTI config
-roboqa path/to/bag_file.db3 --config examples/config_kitti.yaml
+roboqa anomaly path/to/bag_file.db3 --config examples/config_anomaly_kitti.yaml
 
 # Option 2: Use CLI arguments
-roboqa path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 50000
+roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 50000
 
 # Option 3: Disable outlier removal if downsampling is sufficient
-roboqa path/to/bag_file.db3 --voxel-size 0.1 --no-outlier-removal
+roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --no-outlier-removal
 ```
 
 ### Configuration File Example

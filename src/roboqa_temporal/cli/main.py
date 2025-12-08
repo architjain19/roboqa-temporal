@@ -5,7 +5,7 @@
 File: roboqa_temporal/cli/main.py
 Created: 2025-11-20
 Created by: Archit Jain (architj@uw.edu)
-Last Modified: 2025-11-20
+Last Modified: 2025-12-07
 Last Modified by: Archit Jain (architj@uw.edu)
 
 #################################################################
@@ -24,12 +24,14 @@ Basic usage example for RoboQA-Temporal.
 import argparse
 import sys
 from pathlib import Path
+from typing import List, Optional
 import yaml
 
 from roboqa_temporal.loader import BagLoader
 from roboqa_temporal.preprocessing import Preprocessor
 from roboqa_temporal.detection import AnomalyDetector
 from roboqa_temporal.reporting import ReportGenerator
+from roboqa_temporal.synchronization import TemporalSyncValidator
 
 
 def load_config(config_path: str) -> dict:
@@ -41,28 +43,38 @@ def load_config(config_path: str) -> dict:
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="RoboQA-Temporal: Automated quality assessment for ROS2 bag files",
+        description="RoboQA-Temporal: Automated quality assessment for ROS2 bag files and multi-sensor datasets",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic usage
-  roboqa bag_file.db3
+  # Anomaly detection on ROS2 bag
+  roboqa anomaly bag_file.db3
+
+  # Synchronization analysis on KITTI dataset
+  roboqa sync dataset/2011_09_26_drive_0005_sync/
 
   # With configuration file
-  roboqa bag_file.db3 --config config.yaml
+  roboqa anomaly bag_file.db3 --config config.yaml
 
   # Specify output format
-  roboqa bag_file.db3 --output html --output-dir reports/
+  roboqa sync dataset/ --output html --output-dir reports/
 
   # Limit number of frames
-  roboqa bag_file.db3 --max-frames 1000
+  roboqa anomaly bag_file.db3 --max-frames 1000
         """,
     )
 
     parser.add_argument(
-        "bag_file",
+        "mode",
         type=str,
-        help="Path to ROS2 bag file or directory",
+        choices=["anomaly", "sync"],
+        help="Operation mode: 'anomaly' for anomaly detection, 'sync' for synchronization analysis",
+    )
+
+    parser.add_argument(
+        "input_path",
+        type=str,
+        help="Path to ROS2 bag file (for anomaly mode) or dataset folder (for sync mode)",
     )
 
     parser.add_argument(
@@ -173,25 +185,152 @@ Examples:
     enable_ghost = "ghost" not in disabled_detectors
     enable_temporal = "temporal" not in disabled_detectors
 
-    # Validate bag file
-    bag_path = Path(args.bag_file)
-    if not bag_path.exists():
-        print(f"Error: Bag file not found: {args.bag_file}")
+    # Validate input path
+    input_path = Path(args.input_path)
+    if not input_path.exists():
+        print(f"Error: Input path not found: {args.input_path}")
         sys.exit(1)
 
+    mode = args.mode
     print("=" * 60)
     print("RoboQA-Temporal: Quality Assessment Tool")
     print("=" * 60)
-    print(f"Bag file: {bag_path}")
+    print(f"Mode: {mode.upper()}")
+    print(f"Input: {input_path}")
     print(f"Output directory: {output_dir}")
     print()
+
+    try:
+        if mode == "sync":
+            run_sync_analysis(
+                input_path,
+                output_dir,
+                output_format,
+                max_frames,
+                include_plots,
+                args.verbose,
+            )
+        else:  # anomaly mode
+            run_anomaly_detection(
+                input_path,
+                output_dir,
+                output_format,
+                topics,
+                max_frames,
+                voxel_size,
+                remove_outliers,
+                max_points_for_outliers,
+                enable_density,
+                enable_spatial,
+                enable_ghost,
+                enable_temporal,
+                threshold,
+                include_plots,
+                args.verbose,
+            )
+
+    except KeyboardInterrupt:
+        print("\n\nAnalysis interrupted by user.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\nError: {e}")
+        if args.verbose:
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)
+
+
+def run_sync_analysis(
+    dataset_path: Path,
+    output_dir: str,
+    output_format: str,
+    max_frames: Optional[int],
+    include_plots: bool,
+    verbose: bool,
+) -> None:
+    """Run synchronization analysis on a multi-sensor dataset."""
+    print("Running Cross-Modal Synchronization Analysis...")
+    print()
+
+    # Initialize validator
+    validator = TemporalSyncValidator(
+        output_dir=output_dir,
+        report_formats=(output_format,) if output_format != "all" else ("markdown", "html", "csv"),
+        auto_export_reports=True,
+    )
+
+    if verbose:
+        print(f"Loading sensor streams from: {dataset_path}")
+
+    # Run validation
+    report = validator.validate(
+        str(dataset_path),
+        max_frames=max_frames,
+        include_visualizations=include_plots,
+    )
+
+    print()
+    print("=" * 60)
+    print("Synchronization Analysis Complete!")
+    print("=" * 60)
+    
+    # Display summary
+    print("\nSynchronization Quality:")
+    sync_score = report.metrics.get("synchronization_quality_score", 0.0)
+    print(f"  Overall Score: {sync_score:.2%}")
+    print(f"  Temporal Offset Score: {report.metrics.get('temporal_offset_score', 0.0):.2%}")
+    print(f"  Avg Drift Rate: {report.metrics.get('avg_drift_rate_ms_per_s', 0.0):.4f} ms/s")
+    
+    print("\nData Quality:")
+    print(f"  Total Sensor Streams: {len(report.streams)}")
+    print(f"  Missing Frames: {int(report.metrics.get('total_missing_frames', 0))}")
+    print(f"  Duplicate Timestamps: {int(report.metrics.get('total_duplicate_frames', 0))}")
+    
+    print("\nGenerated Reports:")
+    for format_name, file_path in report.report_files.items():
+        print(f"  {format_name.upper()}: {file_path}")
+    
+    if report.parameter_file:
+        print(f"\nTimestamp Corrections: {report.parameter_file}")
+    
+    if report.recommendations:
+        print(f"\nRecommendations: {len(report.recommendations)} issue(s) found")
+        if verbose:
+            for rec in report.recommendations[:5]:  # Show first 5
+                print(f"  - {rec}")
+            if len(report.recommendations) > 5:
+                print(f"  ... and {len(report.recommendations) - 5} more (see report)")
+
+
+def run_anomaly_detection(
+    bag_path: Path,
+    output_dir: str,
+    output_format: str,
+    topics: Optional[List[str]],
+    max_frames: Optional[int],
+    voxel_size: Optional[float],
+    remove_outliers: bool,
+    max_points_for_outliers: int,
+    enable_density: bool,
+    enable_spatial: bool,
+    enable_ghost: bool,
+    enable_temporal: bool,
+    threshold: float,
+    include_plots: bool,
+    verbose: bool,
+) -> None:
+    """Run anomaly detection on a ROS2 bag file."""
+    if not bag_path.is_file() and not (bag_path.is_dir() and (bag_path / "metadata.yaml").exists()):
+        print(f"Error: Invalid bag file or directory: {bag_path}")
+        sys.exit(1)
 
     try:
         # Initialize components
         print("Loading bag file...")
         loader = BagLoader(str(bag_path), topics=topics)
 
-        if args.verbose:
+        if verbose:
             topic_info = loader.get_topic_info()
             print(f"Topics: {list(topic_info.keys())}")
 
@@ -248,7 +387,7 @@ Examples:
 
         print()
         print("=" * 60)
-        print("Analysis Complete!")
+        print("Anomaly Detection Complete!")
         print("=" * 60)
         print("Generated reports:")
         for format_name, file_path in output_files.items():
@@ -260,16 +399,8 @@ Examples:
         print(f"  Anomalies detected: {len(result.anomalies)}")
         print(f"  Health score: {result.health_metrics.get('overall_health_score', 0):.2%}")
 
-    except KeyboardInterrupt:
-        print("\n\nAnalysis interrupted by user.")
-        sys.exit(1)
     except Exception as e:
-        print(f"\nError: {e}")
-        if args.verbose:
-            import traceback
-
-            traceback.print_exc()
-        sys.exit(1)
+        raise
 
 
 if __name__ == "__main__":
