@@ -5,7 +5,7 @@
 File: roboqa_temporal/__init__.py
 Created: 2025-11-20
 Created by: Archit Jain (architj@uw.edu)
-Last Modified: 2025-11-20
+Last Modified: 2025-12-08
 Last Modified by: Archit Jain (architj@uw.edu)
 
 #################################################################
@@ -29,11 +29,15 @@ from roboqa_temporal.loader import BagLoader
 from roboqa_temporal.preprocessing import Preprocessor
 from roboqa_temporal.detection import AnomalyDetector
 from roboqa_temporal.reporting import ReportGenerator
+from roboqa_temporal.synchronization import TemporalSyncValidator
+from roboqa_temporal.fusion import CalibrationQualityValidator
 
 __all__ = [
     "BagLoader",
     "Preprocessor",
     "AnomalyDetector",
     "ReportGenerator",
+    "TemporalSyncValidator",
+    "CalibrationQualityValidator",
 ]
 
