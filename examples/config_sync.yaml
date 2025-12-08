@@ -1,0 +1,65 @@
+################################################################
+
+# File: examples/config_sync.yaml
+# Created: 2025-12-07
+# Created by: Archit Jain (architj@uw.edu)
+# Last Modified: 2025-12-07
+# Last Modified by: Archit Jain (architj@uw.edu)
+
+#################################################################
+
+# Copyright: RoboQA-Temporal Authors
+# License: MIT License
+
+################################################################
+
+# Configuration for Cross-Modal Synchronization Analysis
+# Use with: roboqa sync <dataset_path> --config config_sync.yaml
+
+################################################################
+
+# Sensor folder mappings (relative to dataset root)
+sensor_folders:
+  camera_left: "image_00"
+  camera_right: "image_01"
+  camera_color_left: "image_02"
+  camera_color_right: "image_03"
+  lidar: "velodyne_points"
+  imu: "oxts"
+
+# Expected sensor frequencies (Hz)
+expected_frequency_hz:
+  camera_left: 10.0
+  camera_right: 10.0
+  camera_color_left: 10.0
+  camera_color_right: 10.0
+  lidar: 10.0
+  imu: 100.0
+
+# Synchronization thresholds (milliseconds)
+# Maximum allowed timestamp difference between sensor pairs
+approximate_time_threshold_ms:
+  camera_left_lidar: 100.0      # 100ms tolerance for camera-lidar pairs
+  camera_left_camera_right: 50.0 # 50ms tolerance for multi-camera sync
+  lidar_imu: 100.0              # 100ms tolerance for lidar-imu pairs
+  camera_left_imu: 100.0        # 100ms tolerance for camera-imu pairs
+
+# Analysis configuration
+analysis:
+  rolling_window: 50              # Window size for rolling statistics
+  heatmap_resolution: 128          # Resolution of temporal heatmaps
+  kalman_process_noise: 0.000001   # Kalman filter process noise
+  kalman_measurement_noise: 0.0001 # Kalman filter measurement noise
+  kalman_horizon_s: 5.0            # Prediction horizon in seconds
+
+# Timing precision thresholds
+ptp_config:
+  max_offset_ns: 1000000   # Maximum offset (1 ms in nanoseconds)
+  max_jitter_ns: 100000    # Maximum jitter (100 μs in nanoseconds)
+
+# Output configuration
+output: "all"  # Options: markdown, html, csv, all
+output_dir: "reports/temporal_sync"
+
+# Frame limit (optional, null for all frames)
+max_frames: null
