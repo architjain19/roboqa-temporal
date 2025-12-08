@@ -23,6 +23,9 @@ roboqa-temporal/
 │   ├── synchronization/                # Cross-modal synchronization analysis
 │   │   ├── __init__.py 
 │   │   └── temporal_validator.py       # TemporalSyncValidator for multi-sensor sync
+│   ├── fusion/                         # Camera-LiDAR fusion quality assessment
+│   │   ├── __init__.py
+│   │   └── fusion_quality_validator.py # CalibrationQualityValidator for fusion metrics
 │   ├── reporting/                      # Report generation
 │   │   ├── __init__.py 
 │   │   └── report_generator.py         # ReportGenerator for multiple formats
@@ -83,9 +86,15 @@ roboqa-temporal/
 - **SensorStream**: Represents individual sensor data streams with timestamps
 - **PairwiseDriftResult**: Stores analysis results for sensor pairs
 - **TemporalSyncReport**: Aggregates all synchronization validation results
-- Supports KITTI-format datasets and other image sequence formats
-- Detects timestamp drift, missing frames, and duplicate timestamps
-- Generates temporal heatmaps and correction parameters
+
+### fusion/
+- **CalibrationQualityValidator**: Main validator for camera-LiDAR fusion quality assessment
+- **CalibrationStream**: Container for calibration stream data
+- **CalibrationPairResult**: Result of calibration quality assessment for a sensor pair
+- **ProjectionErrorFrame**: Projection error metrics for a single frame
+- **IlluminationFrame**: Illumination change metrics for a single frame
+- **MovingObjectFrame**: Moving object detection quality for a single frame
+- **CalibrationQualityReport**: Complete fusion quality assessment report
 
 ### reporting/
 - **ReportGenerator**: Creates quality assessment reports
@@ -193,6 +202,66 @@ Quantifies smoothness and consistency in spatio-temporal evolution:
 - camera_left ↔ camera_right
 - lidar ↔ imu
 - camera_left ↔ imu
+
+## Camera-LiDAR Fusion Quality Assessment Features
+
+### Key Capabilities
+
+1. **Calibration Drift Estimation**
+   - Tests for changes in calibration matrices over time
+   - Measures edge alignment between camera edges and LiDAR projections
+   - Computes normalized mutual information between camera and LiDAR data
+   - Suggests potential hardware re-calibration needs when quality drops
+
+2. **Projection Error Quantification**
+   - Measures reprojection error when projecting 3D points into camera images
+   - Tracks error trends across the sequence (stable/increasing/decreasing)
+   - Identifies frames with maximum projection errors
+   - Highlights instances with significant calibration drift
+
+3. **Illumination and Scene Change Detection**
+   - Detects brightness changes and lighting variations
+   - Measures image contrast (Michelson contrast)
+   - Identifies light source changes that may affect fusion quality
+   - Tracks edge density changes indicating scene modifications
+   - Assesses impact on feature matching and tracking reliability
+
+4. **Moving Object Detection Quality**
+   - Evaluates consistency of dynamic object detection across frames
+   - Quantifies detection confidence and fusion quality scores
+   - Tracks temporal consistency in object detection
+   - Identifies frames with detection quality issues
+   - Assesses overall camera-LiDAR fusion capability
+
+### Supported Dataset Formats
+
+- **KITTI Format**: Datasets with camera and LiDAR subfolders
+- **Camera Data**: PNG images in `camera_*/data/` directories
+- **LiDAR Data**: Binary point cloud files in `lidar/data/` directories
+- **Calibration Files**: `calib_velo_to_cam.txt` and `calib_cam_to_cam.txt`
+
+### Output Metrics
+
+**Calibration Quality:**
+- Edge Alignment Score (0.0-1.0): Higher indicates better geometric alignment
+- Mutual Information Score (0.0-1.0+): Higher indicates better sensor correlation
+- Contrastive Score: Deep learning-based similarity metric (if enabled)
+
+**Projection Error:**
+- Mean Reprojection Error: Average error across all frames
+- Max Reprojection Error: Peak error indicating worst-case calibration
+- Increasing Error Count: Frames showing drift trend
+
+**Illumination:**
+- Mean Brightness: Average image brightness
+- Brightness Standard Deviation: Variation in illumination
+- Light Source Changes: Count of detected major lighting events
+
+**Moving Objects:**
+- Mean Detected Objects: Average number of detected objects per frame
+- Detection Confidence: Average confidence in object detection
+- Fusion Quality Score: Combined metric for fusion capability
+- Consistency Score: Temporal consistency of detections
 
 ## Output Reports
 

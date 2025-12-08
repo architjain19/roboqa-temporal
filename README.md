@@ -100,7 +100,7 @@ The integration tests exercise the ROS 2 loader and other anomaly and quality te
 
 ### Usage
 
-RoboQA-Temporal now supports two main operation modes:
+RoboQA-Temporal now supports three main operation modes:
 
 #### 1. Anomaly Detection Mode (for ROS2 bags)
 
@@ -136,6 +136,28 @@ roboqa sync dataset/2011_09_26_drive_0005_sync/ --max-frames 500 --output-dir re
 # Use configuration file for custom sensor mappings and thresholds
 roboqa sync dataset/2011_09_26_drive_0005_sync/ --config examples/config_sync.yaml
 ```
+
+#### 3. Camera-LiDAR Fusion Quality Mode (for multi-sensor datasets)
+
+```bash
+# Analyze camera-LiDAR fusion quality in a KITTI-format dataset
+roboqa fusion dataset/2011_09_26_drive_0005_sync/
+
+# Limit number of frames to analyze
+roboqa fusion dataset/2011_09_26_drive_0005_sync/ --max-frames 500
+
+# Customize output directory
+roboqa fusion dataset/2011_09_26_drive_0005_sync/ --output-dir reports/fusion/
+
+# Use configuration file for custom parameters
+roboqa fusion dataset/2011_09_26_drive_0005_sync/ --config examples/config_fusion.yaml
+```
+
+**Note on Calibration Files**: For accurate fusion quality assessment, calibration files are required:
+- `calib_velo_to_cam.txt`: Velodyne to camera transformation
+- `calib_cam_to_cam.txt`: Camera intrinsics and rectification
+
+Place these files in the dataset root directory. If not available, you can download official KITTI calibration files from the [KITTI dataset website](http://www.cvlibs.net/datasets/kitti/).
 
 ### Troubleshooting (Handling Large Point Clouds (KITTI, Outdoor LiDAR))
 
@@ -185,6 +207,8 @@ roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 5
     │       ├── detection                   # Anomaly detection algorithms
     │       │   ├── detector.py
     │       │   ├── detectors.py
+    │       ├── fusion                      # Camera-LiDAR fusion quality assessment
+    │       │   └── fusion_quality_validator.py
     │       ├── loader                      # ROS2 bag file loader
     │       │   ├── bag_loader.py
     │       ├── preprocessing               # Point cloud preprocessing
@@ -222,17 +246,25 @@ roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 5
 - **Multi-Sensor Support**: Works with KITTI and similar dataset formats with timestamp files
 - **Comprehensive Drift Analysis**: Includes chi-square tests, Kalman filtering, and cross-correlation analysis
 
+#### 3. Camera-LiDAR Fusion Quality Assessment
+- **Calibration Drift Estimation**: Test for changes in calibration matrices over time, suggesting potential hardware re-calibration needs
+- **Projection Error Quantification**: Measure the error when projecting 3D points into camera images throughout a sequence; spotlight instances with increasing error
+- **Illumination and Scene Change Detection**: Detect lighting changes and their adverse effects on matching and tracking
+- **Moving Object Detection Quality**: Evaluate how well dynamic objects are consistently detected in fusion scenarios; quantify detection rate and quality over time
+- **Comprehensive HTML Reports**: Professional reports with metrics visualization, recommendations, and interpretation guides
+
 ### Key Features
 
-- **Dual Operation Modes**: Support for both ROS2 bag anomaly detection and multi-sensor synchronization analysis
+- **Triple Operation Modes**: Support for anomaly detection, synchronization analysis, and fusion quality assessment
 - **ROS2 Bag Support**: Efficient reading and processing of ROS2 bag files
 - **Multi-Sensor Dataset Support**: Works with KITTI-format datasets and other image sequence formats
-- **Modular Architecture**: Extensible design with separate modules for loading, preprocessing, detection, synchronization, and reporting
+- **Modular Architecture**: Extensible design with separate modules for loading, preprocessing, detection, synchronization, fusion, and reporting
 - **Multiple Output Formats**: Generate reports in Markdown, HTML (with visualizations), and CSV
 - **Comprehensive CLI**: Easy-to-use command-line interface with mode selection
 - **Configuration Support**: YAML-based configuration files for flexible parameter tuning
 - **Visualization**: Interactive plots, temporal heatmaps, and charts in HTML reports
 - **Timestamp Corrections**: Exports recommended timestamp corrections as YAML parameter files
+- **Calibration Assessment**: Professional evaluation of camera-LiDAR sensor fusion quality with detailed metrics
 
 ## Contributing
 
