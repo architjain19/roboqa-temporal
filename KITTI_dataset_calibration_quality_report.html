@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Calibration Quality Report - KITTI_dataset</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; color: #333; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        .summary { background-color: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; }
+        table { border-collapse: collapse; width: 100%; margin-top: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #dee2e6; padding: 12px; text-align: left; }
+        th { background-color: #e9ecef; color: #495057; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        .pass { color: #28a745; font-weight: bold; }
+        .fail { color: #dc3545; font-weight: bold; }
+        .metric-info { background-color: #e8f4f8; padding: 15px; border-left: 5px solid #17a2b8; margin: 20px 0; border-radius: 4px; }
+        .metric-info h3 { margin-top: 0; color: #0c5460; }
+        .metric-info ul { margin-bottom: 0; }
+        .metric-info li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Calibration Quality Report</h1>
+    
+    <div class="summary">
+        <h2>Summary for KITTI_dataset</h2>
+        <p><strong>Overall Status:</strong> <span class='fail'>FAIL</span></p>
+        <p><strong>Average Edge Alignment Score:</strong> 0.078</p>
+        <p><strong>Average Mutual Information:</strong> 0.024</p>
+    </div>
+
+    <div class="metric-info">
+        <h3>Understanding the Metrics</h3>
+        <p>This report assesses the alignment between Camera and LiDAR sensors using the following metrics:</p>
+        <ul>
+            <li><strong>Geometric Edge Score (0.0 - 1.0):</strong> Measures how well edges detected in the camera image align with depth discontinuities (edges) in the projected LiDAR point cloud. 
+                <br><em>Interpretation:</em> Higher is better. Values > 0.10 typically indicate reasonable alignment for complex scenes. Values near 0.0 indicate misalignment or featureless scenes.</li>
+            <li><strong>Mutual Information (NMI):</strong> Measures the statistical dependence between the camera image intensity and the LiDAR return intensity.
+                <br><em>Interpretation:</em> Higher is better. Values > 0.05 typically indicate that the sensors are observing the same scene structure. Values near 0.0 suggest independence (misalignment).</li>
+            <li><strong>Contrastive Score:</strong> A learned similarity metric using deep neural networks (if enabled).</li>
+        </ul>
+    </div>
+
+    <h2>Pairwise Results</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Sensor Pair</th>
+                <th>Edge Score</th>
+                <th>Mutual Info</th>
+                <th>Contrastive</th>
+                <th>Status</th>
+                <th>Recommendation</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>KITTI_drive_0002</td><td>0.078</td><td>0.024</td><td>0.000</td><td class='fail'>FAIL</td><td>Recalibrate</td></tr>
+        </tbody>
+    </table>
+</body>
+</html>

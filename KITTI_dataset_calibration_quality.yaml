@@ -1,0 +1,9 @@
+calibration_corrections:
+  KITTI_drive_0002:
+    overall_pass: false
+    quality_score: 0.0778985247015953
+    recommendation: "Recalibrate this camera\u2013LiDAR pair."
+metadata:
+  bag_name: KITTI_dataset
+  iso_8000_61: true
+  type: sensor_calibration_quality
