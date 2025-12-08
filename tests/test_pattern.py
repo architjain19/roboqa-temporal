@@ -14,6 +14,12 @@ from roboqa_temporal.detection.detector import DetectionResult
 from roboqa_temporal.loader.bag_loader import PointCloudFrame
 from roboqa_temporal.preprocessing import Preprocessor
 from roboqa_temporal.reporting import ReportGenerator
+import pandas as pd
+
+from .feature4_helpers import ( export_dataframe,
+    build_quality_dashboard,
+    save_dashboard_html,
+)
 
 
 def test_pattern_preprocess_then_detect():
@@ -276,3 +282,54 @@ def test_calibration_validator_pattern_quality_decreases_with_miscalibration(tmp
         # Verify score is clamped at 0.0 for miscalib > max_px
         if mis_px > 20.0:  # max_px default
             assert math.isclose(score, 0.0, abs_tol=1e-9)
+       
+def test_feature4_metrics_export_and_dashboard_pattern(tmp_path):
+    """
+    author: sayali
+    reviewer: Xinxin
+    category: pattern test
+    justification: We want to ensure reporting follows a stable pattern:
+                   sorted sequences, CSV + JSON being created, and
+                   dashboard HTML file produced.
+    """
+
+    # Construct a small dataframe intentionally unsorted by "sequence"
+    df = pd.DataFrame(
+        [
+            {"sequence": "seq_10", "multimodal_health_score": 0.2},
+            {"sequence": "seq_02", "multimodal_health_score": 0.9},
+            {"sequence": "seq_01", "multimodal_health_score": 0.7},
+        ]
+    )
+
+    # Add dummy scores required by the dashboard
+    df["temporal_score"] = [0.4, 0.9, 0.6]
+    df["anomaly_score"] = [0.3, 0.2, 0.8]
+
+    # For this pattern test we are not testing tier logic,
+    # so we can assign a simple dummy tier.
+    df["health_tier"] = ["good", "excellent", "poor"]
+
+    # Enforce a consistent pattern in reporting: sort by sequence
+    df_sorted = df.sort_values("sequence").reset_index(drop=True)
+    assert list(df_sorted["sequence"]) == ["seq_01", "seq_02", "seq_10"]
+
+    # Export CSV + JSON and check files exist and non-empty
+    csv_path = tmp_path / "metrics.csv"
+    json_path = tmp_path / "metrics.json"
+
+    export_dataframe(df_sorted, str(csv_path), fmt="csv")
+    export_dataframe(df_sorted, str(json_path), fmt="json")
+
+    assert csv_path.exists()
+    assert json_path.exists()
+    assert csv_path.stat().st_size > 0
+    assert json_path.stat().st_size > 0
+
+    # Build dashboard and save HTML
+    fig = build_quality_dashboard(df_sorted)
+    html_path = tmp_path / "dashboard.html"
+    save_dashboard_html(fig, str(html_path))
+
+    assert html_path.exists()
+   
