@@ -5,7 +5,7 @@
 File: roboqa_temporal/cli/main.py
 Created: 2025-11-20
 Created by: Archit Jain (architj@uw.edu)
-Last Modified: 2025-12-07
+Last Modified: 2025-12-08
 Last Modified by: Archit Jain (architj@uw.edu)
 
 #################################################################
@@ -26,12 +26,14 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 import yaml
+import numpy as np
 
 from roboqa_temporal.loader import BagLoader
 from roboqa_temporal.preprocessing import Preprocessor
 from roboqa_temporal.detection import AnomalyDetector
 from roboqa_temporal.reporting import ReportGenerator
 from roboqa_temporal.synchronization import TemporalSyncValidator
+from roboqa_temporal.fusion import CalibrationQualityValidator
 
 
 def load_config(config_path: str) -> dict:
@@ -53,6 +55,9 @@ Examples:
   # Synchronization analysis on KITTI dataset
   roboqa sync dataset/2011_09_26_drive_0005_sync/
 
+  # Camera-LiDAR fusion quality assessment
+  roboqa fusion dataset/2011_09_26_drive_0005_sync/
+
   # With configuration file
   roboqa anomaly bag_file.db3 --config config.yaml
 
@@ -67,8 +72,8 @@ Examples:
     parser.add_argument(
         "mode",
         type=str,
-        choices=["anomaly", "sync"],
-        help="Operation mode: 'anomaly' for anomaly detection, 'sync' for synchronization analysis",
+        choices=["anomaly", "sync", "fusion"],
+        help="Operation mode: 'anomaly' for anomaly detection, 'sync' for synchronization analysis, 'fusion' for camera-LiDAR fusion quality",
     )
 
     parser.add_argument(
@@ -210,6 +215,15 @@ Examples:
                 include_plots,
                 args.verbose,
             )
+        elif mode == "fusion":
+            run_fusion_analysis(
+                input_path,
+                output_dir,
+                output_format,
+                max_frames,
+                include_plots,
+                args.verbose,
+            )
         else:  # anomaly mode
             run_anomaly_detection(
                 input_path,
@@ -294,6 +308,84 @@ def run_sync_analysis(
     if report.parameter_file:
         print(f"\nTimestamp Corrections: {report.parameter_file}")
     
+    if report.recommendations:
+        print(f"\nRecommendations: {len(report.recommendations)} issue(s) found")
+        if verbose:
+            for rec in report.recommendations[:5]:
+                print(f"  - {rec}")
+            if len(report.recommendations) > 5:
+                print(f"  ... and {len(report.recommendations) - 5} more (see report)")
+
+
+def run_fusion_analysis(
+    dataset_path: Path,
+    output_dir: str,
+    output_format: str,
+    max_frames: Optional[int],
+    include_plots: bool,
+    verbose: bool,
+) -> None:
+    """Run camera-LiDAR fusion quality analysis on a multi-sensor dataset."""
+    print("Running Camera-LiDAR Fusion Quality Assessment...")
+    print()
+
+    # Initializing validator
+    validator = CalibrationQualityValidator(output_dir=output_dir)
+
+    if verbose:
+        print(f"Loading dataset from: {dataset_path}")
+
+    # Running validation
+    report = validator.analyze_dataset(
+        str(dataset_path),
+        max_frames=max_frames,
+        include_visualizations=include_plots,
+    )
+
+    print()
+    print("=" * 60)
+    print("Fusion Quality Assessment Complete!")
+    print("=" * 60)
+
+    # Displaying summary
+    print("\nCalibration Quality:")
+    for pair_name, result in report.pair_results.items():
+        status = "PASS" if result.overall_pass else "FAIL"
+        print(f"  {pair_name}: {status}")
+        print(f"    Edge Alignment: {result.geom_edge_score:.3f}")
+        print(f"    Mutual Information: {result.mutual_information:.3f}")
+
+    print("\nProjection Error Analysis:")
+    if report.projection_errors:
+        mean_error = np.mean([e.reprojection_error for e in report.projection_errors])
+        max_error = np.max([e.reprojection_error for e in report.projection_errors])
+        increasing = sum(1 for e in report.projection_errors if e.error_trend == "increasing")
+        print(f"  Mean Error: {mean_error:.3f}")
+        print(f"  Max Error: {max_error:.3f}")
+        print(f"  Frames with Increasing Error: {increasing}")
+
+    print("\nIllumination Changes:")
+    if report.illumination_changes:
+        mean_brightness = np.mean([i.brightness_mean for i in report.illumination_changes])
+        light_changes = sum(1 for i in report.illumination_changes if i.light_source_change)
+        print(f"  Mean Brightness: {mean_brightness:.1f}")
+        print(f"  Light Source Changes: {light_changes}")
+
+    print("\nMoving Object Detection:")
+    if report.moving_objects:
+        mean_objects = np.mean([o.detected_objects for o in report.moving_objects])
+        mean_confidence = np.mean([o.detection_confidence for o in report.moving_objects])
+        mean_fusion_quality = np.mean([o.fusion_quality_score for o in report.moving_objects])
+        print(f"  Mean Detected Objects: {mean_objects:.1f}")
+        print(f"  Mean Detection Confidence: {mean_confidence:.2f}")
+        print(f"  Mean Fusion Quality Score: {mean_fusion_quality:.2f}")
+
+    print("\nGenerated Reports:")
+    if report.parameter_file:
+        print(f"  YAML Parameters: {report.parameter_file}")
+    if report.html_report_file:
+        print(f"  HTML Report: {report.html_report_file}")
+
     if report.recommendations:
         print(f"\nRecommendations: {len(report.recommendations)} issue(s) found")
         if verbose:
