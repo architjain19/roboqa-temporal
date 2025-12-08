@@ -1,34 +1,29 @@
 """
 ################################################################
-File: roboqa_temporal/examples/feature4_kitti_visual_demo.py
-Author: Sayali Nehul
+File: feature4_demo_visuals.py
+Created: 2025-12-07
+Created by: Sayali Nehul (snehul@uw.edu)
+Last Modified: 2025-12-07
+Last Modified by: Sayali Nehul (snehul@uw.edu)
 ################################################################
-
-Dataset Quality Scoring &Cross-Benchmarking (Feature 4)
-Demo Visuals — KITTI Camera + LiDAR Viewer.
-
-Generates simple visual previews for KITTI sequences:
-- Random sample camera images (image_00–image_03)
-- A 3D point cloud from a velodyne_points .bin scan
-
-Outputs:
-- camera_samples_<seq>.png
-- lidar_pointcloud_<seq>.png
-
+Dataset Quality Scoring & Cross-Benchmarking (Feature 4)
+KITTI Visual Demo — Camera + LiDAR Quick Viewer.
+This module generates simple visual previews for KITTI sequences,
+including random sampled camera images from image_00 to image_03
+and 3D visualization of a Velodyne LiDAR .bin scan.Outputs produced 
+for each sequence is camera_samples_<seq>.png lidar_pointcloud_<seq>.png
 ################################################################
 """
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 
-def load_bin(bin_path):
-    """Load single KITTI .bin LiDAR frame."""
-    scan = np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4)
+def load_bin(bin_path):                                                                                               #Load single KITTI .bin LiDAR frame.
+    scan = np.fromfile(bin_path, dtype=np.float32).reshape(-1, 4)                                    
     return scan[:, 0], scan[:, 1], scan[:, 2]  # x, y, z only (no intensity)
 
 
-def get_first_frame(sequence_path):
-    """Return the first .bin file path inside velodyne_points/data."""
+def get_first_frame(sequence_path):                                                                                   #Return the first .bin file path inside velodyne_points/data.
     velo_path = os.path.join(sequence_path, "velodyne_points", "data")
     if not os.path.exists(velo_path):
         raise FileNotFoundError(f"No velodyne_points/data folder in {sequence_path}")
@@ -40,9 +35,7 @@ def get_first_frame(sequence_path):
     return os.path.join(velo_path, files[0])
 
 
-def plot_three_sequences(seq_paths, seq_names):
-    """Plot FIRST LiDAR frame of each sequence with clear labeling."""
-
+def plot_three_sequences(seq_paths, seq_names):                                                                       #Plot FIRST LiDAR frame of each sequence with clear labeling.
     colors = ["blue", "green", "red"]
 
     fig = plt.figure(figsize=(12, 9))
@@ -59,11 +52,8 @@ def plot_three_sequences(seq_paths, seq_names):
     ax.set_title("KITTI LiDAR Point Cloud — Sequences 0005, 0023, 0070", fontsize=14)
     ax.set_xlabel("X (m) — forward")
     ax.set_ylabel("Y (m) — left/right")
-    ax.set_zlabel("Z (m) — height")
-
-    # legend explaining color encoding
-    ax.legend(loc="upper left")
-
+    ax.set_zlabel("Z (m) — height")                                                                                                                         
+    ax.legend(loc="upper left")                                                                                         # legend explaining color encoding
     ax.view_init(elev=25, azim=-65)
     plt.tight_layout()
     plt.show()
