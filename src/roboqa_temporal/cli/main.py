@@ -23,6 +23,7 @@ Basic usage example for RoboQA-Temporal.
 
 import argparse
 import sys
+import os
 from pathlib import Path
 from typing import List, Optional
 import yaml
@@ -34,6 +35,28 @@ from roboqa_temporal.detection import AnomalyDetector
 from roboqa_temporal.reporting import ReportGenerator
 from roboqa_temporal.synchronization import TemporalSyncValidator
 from roboqa_temporal.fusion import CalibrationQualityValidator
+from roboqa_temporal.health_reporting import (
+    run_health_check,
+    generate_curation_recommendations,
+)
+from roboqa_temporal.health_reporting.dashboard import (
+    build_dashboard_html,
+    plot_quality_scores,
+    plot_dimension_comparison,
+    plot_health_distribution,
+)
+from roboqa_temporal.health_reporting.exporters import (
+    export_csv,
+    export_json,
+    export_yaml,
+    create_summary_report,
+)
+from roboqa_temporal.health_reporting.curation import (
+    generate_curation_report,
+    generate_curation_json,
+    get_sequences_to_exclude,
+    get_sequences_for_review,
+)
 
 
 def load_config(config_path: str) -> dict:
@@ -58,6 +81,9 @@ Examples:
   # Camera-LiDAR fusion quality assessment
   roboqa fusion dataset/2011_09_26_drive_0005_sync/
 
+  # Dataset health assessment and quality dashboard
+  roboqa health dataset/
+
   # With configuration file
   roboqa anomaly bag_file.db3 --config config.yaml
 
@@ -72,8 +98,8 @@ Examples:
     parser.add_argument(
         "mode",
         type=str,
-        choices=["anomaly", "sync", "fusion"],
-        help="Operation mode: 'anomaly' for anomaly detection, 'sync' for synchronization analysis, 'fusion' for camera-LiDAR fusion quality",
+        choices=["anomaly", "sync", "fusion", "health"],
+        help="Operation mode: 'anomaly' for anomaly detection, 'sync' for synchronization analysis, 'fusion' for camera-LiDAR fusion quality, 'health' for dataset quality assessment",
     )
 
     parser.add_argument(
@@ -206,7 +232,15 @@ Examples:
     print()
 
     try:
-        if mode == "sync":
+        if mode == "health":
+            run_health_analysis(
+                input_path,
+                output_dir,
+                output_format,
+                include_plots,
+                args.verbose,
+            )
+        elif mode == "sync":
             run_sync_analysis(
                 input_path,
                 output_dir,
@@ -493,6 +527,143 @@ def run_anomaly_detection(
 
     except Exception as e:
         raise
+
+
+def run_health_analysis(
+    dataset_path: Path,
+    output_dir: str,
+    output_format: str,
+    include_plots: bool,
+    verbose: bool,
+) -> None:
+    """Run dataset health assessment on multi-sensor dataset folders."""
+    print("Running Dataset Health Assessment & Quality Dashboard...")
+    print()
+
+    # Initializing output directory
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    if verbose:
+        print(f"Scanning dataset sequences from: {dataset_path}")
+        print()
+
+    # Running health check
+    print("Computing quality metrics...")
+    df_per_sensor = run_health_check(str(dataset_path), output_dir)
+
+    if df_per_sensor.empty:
+        print("[ERROR] No metrics accumulated; nothing to export.")
+        return
+
+    print()
+    print("=" * 60)
+    print("Dataset Health Assessment Complete!")
+    print("=" * 60)
+    
+    # Aggregating per sequence
+    agg_cols = [
+        "temporal_score",
+        "anomaly_score",
+        "dim_timeliness",
+        "dim_completeness",
+        "overall_quality_score",
+        "overall_quality_score_0_100",
+    ]
+    df_per_sequence = df_per_sensor.groupby("sequence", as_index=False)[agg_cols].mean()
+    df_per_sequence["health_tier"] = df_per_sequence["overall_quality_score"].apply(
+        lambda x: "excellent" if x >= 0.85 else "good" if x >= 0.70 else "fair" if x >= 0.50 else "poor"
+    )
+
+    # Exporting metrics
+    print("\nExporting metrics...")
+    if output_format in ["csv", "all"]:
+        export_csv(df_per_sensor, df_per_sequence, output_dir)
+    
+    if output_format in ["json", "all"]:
+        export_json(df_per_sequence, output_dir)
+    
+    if output_format in ["yaml", "all"]:
+        export_yaml(df_per_sequence, output_dir)
+
+    # Creating visualizations if requested
+    if include_plots:
+        print("Generating visualizations...")
+        plot_quality_scores(df_per_sensor, os.path.join(output_dir, "health_scores.png"))
+        plot_dimension_comparison(df_per_sequence, os.path.join(output_dir, "dimension_comparison.png"))
+        plot_health_distribution(df_per_sequence, os.path.join(output_dir, "health_distribution.png"))
+
+    # Building interactive dashboard
+    print("Building interactive dashboard...")
+    build_dashboard_html(
+        df_per_sensor,
+        df_per_sequence,
+        os.path.join(output_dir, "health_dashboard.html"),
+    )
+
+    # Creating summary report
+    print("Creating summary report...")
+    create_summary_report(df_per_sequence, output_dir)
+
+    # Generating curation recommendations
+    print("Generating curation recommendations...")
+    recommendations = generate_curation_recommendations(
+        df_per_sensor,
+        df_per_sequence,
+        temporal_threshold=0.6,
+        completeness_threshold=0.6,
+        quality_threshold=0.5,
+    )
+    
+    if recommendations:
+        generate_curation_report(recommendations, os.path.join(output_dir, "curation_recommendations.txt"))
+        generate_curation_json(recommendations, os.path.join(output_dir, "curation_recommendations.json"))
+
+    # Displaying results summary
+    print()
+    print("Quality Assessment Summary:")
+    print(f"  Total Sequences: {len(df_per_sequence)}")
+    print(f"  Mean Quality Score: {df_per_sequence['overall_quality_score_0_100'].mean():.1f} / 100")
+    
+    print("\nHealth Tier Distribution:")
+    tier_counts = df_per_sequence["health_tier"].value_counts()
+    for tier in ["excellent", "good", "fair", "poor"]:
+        count = tier_counts.get(tier, 0)
+        pct = 100.0 * count / len(df_per_sequence)
+        print(f"  {tier.upper():10s}: {count:3d} sequences ({pct:5.1f}%)")
+    
+    if recommendations:
+        print(f"\nCuration Issues Found: {len(recommendations)}")
+        exclude_list = get_sequences_to_exclude(recommendations)
+        review_list = get_sequences_for_review(recommendations)
+        if exclude_list:
+            print(f"  Sequences to EXCLUDE: {len(exclude_list)}")
+            if verbose:
+                for seq in exclude_list[:5]:
+                    print(f"    - {seq}")
+                if len(exclude_list) > 5:
+                    print(f"    ... and {len(exclude_list) - 5} more")
+        if review_list:
+            print(f"  Sequences for REVIEW: {len(review_list)}")
+            if verbose:
+                for seq in review_list[:5]:
+                    print(f"    - {seq}")
+                if len(review_list) > 5:
+                    print(f"    ... and {len(review_list) - 5} more")
+    else:
+        print("\nNo curation issues found. All sequences meet quality thresholds.")
+    
+    print(f"\nReports saved to: {output_dir}")
+    print("  - health_dashboard.html (interactive dashboard)")
+    print("  - health_metrics.csv (detailed per-sensor metrics)")
+    print("  - health_metrics_by_sequence.csv (aggregated per-sequence metrics)")
+    print("  - health_summary.txt (summary report)")
+    if include_plots:
+        print("  - health_scores.png (quality scores bar chart)")
+        print("  - dimension_comparison.png (dimension scores comparison)")
+        print("  - health_distribution.png (health tier distribution)")
+    if recommendations:
+        print("  - curation_recommendations.txt (detailed curation recommendations)")
+        print("  - curation_recommendations.json (recommendations in JSON format)")
 
 
 if __name__ == "__main__":
