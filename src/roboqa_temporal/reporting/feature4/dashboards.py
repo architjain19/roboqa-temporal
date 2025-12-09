@@ -1,14 +1,15 @@
 """
 ################################################################
-File: roboqa_temporal/reporting/dashboards.py
+File: dashboards.py
 Created: 2025-12-07
 Created by: Sayali Nehul
 Last Modified: 2025-12-07
 Last Modified by: Sayali Nehul
 #################################################################
-4-Panel Interactive Quality Dashboard Generator.
-Builds a 2×2 Plotly dashboard used by Feature 4 to visualize dataset
-quality across multiple dimensions. The dashboard includes:
+4-Panel Interactive Quality Dashboard Generator.Builds a 
+2×2 Plotly dashboard Dataset Quality Scoring & Cross-Benchmarking
+used by Feature 4 to visualize dataset quality across multiple 
+dimensions. The dashboard includes:
 (1) Dataset-level radar chart of core quality dimensions
 (2) Per-sequence overall quality score bar chart
 (3) Cross-benchmark percentile comparison
