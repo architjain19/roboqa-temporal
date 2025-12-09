@@ -26,6 +26,7 @@ analysis.
 
 from typing import List, Dict, Any, Tuple
 import numpy as np
+from scipy.spatial import KDTree
 from scipy.spatial.distance import cdist
 from scipy.stats import zscore
 from sklearn.covariance import EllipticEnvelope
@@ -284,10 +285,11 @@ class GhostPointDetector:
             # Method 2: Distance-based heuristic (points far from neighbors)
             try:
                 if len(points) > 50:
-                    # Compute k-nearest neighbor distances
+                    # Using KD-tree for computing memory-efficient k-nearest neighbor search
                     k = min(10, len(points) - 1)
-                    distances = cdist(points, points)
-                    k_distances = np.partition(distances, k + 1, axis=1)[:, 1 : k + 1]
+                    tree = KDTree(points)
+                    distances, _ = tree.query(points, k=k + 1)
+                    k_distances = distances[:, 1:]
                     mean_k_distances = np.mean(k_distances, axis=1)
 
                     # Points with unusually large neighbor distances

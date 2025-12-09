@@ -71,6 +71,7 @@ pip install -e .
 - `pandas` >= 1.3.0
 - `matplotlib` >= 3.5.0
 - `seaborn` >= 0.11.0
+- `plotly` >= 5.0.0
 - `pyyaml` >= 6.0
 - `tqdm` >= 4.62.0
 - `tabulate` >= 0.9.0
@@ -100,97 +101,159 @@ The integration tests exercise the ROS 2 loader and other anomaly and quality te
 
 ### Usage
 
+RoboQA-Temporal now supports four main operation modes:
+
+#### 1. Anomaly Detection Mode (for ROS2 bags)
+
 ```bash
-# Analyze a ROS2 bag file
-roboqa path/to/bag_file.db3
+# Analyze a ROS2 bag file for anomalies
+roboqa anomaly path/to/bag_file.db3
 
 # Specify output format
-roboqa path/to/bag_file.db3 --output html
+roboqa anomaly path/to/bag_file.db3 --output html
 
 # Limit number of frames
-roboqa path/to/bag_file.db3 --max-frames 1000
+roboqa anomaly path/to/bag_file.db3 --max-frames 1000
 
 # Use configuration file
-roboqa path/to/bag_file.db3 --config path/to/config.yaml
+roboqa anomaly path/to/bag_file.db3 --config examples/config_anomaly_kitti.yaml
 
 # Combined usage
-roboqa path/to/bag_file.db3 --output html --max-frames 1000 --config path/to/config.yaml 
-
+roboqa anomaly path/to/bag_file.db3 --output html --max-frames 1000 --config examples/config_anomaly_kitti.yaml 
 ```
 
-<!-- ### Python API
+#### 2. Synchronization Analysis Mode (for multi-sensor datasets)
 
-```python
-from roboqa_temporal import BagLoader, Preprocessor, AnomalyDetector, ReportGenerator
+```bash
+# Analyze temporal synchronization in a KITTI-format dataset
+roboqa sync dataset/2011_09_26_drive_0005_sync/
 
-# Load bag file
-loader = BagLoader("path/to/bag_file.db3")
-frames = loader.read_all_frames(max_frames=1000)
-loader.close()
+# Specify output format
+roboqa sync dataset/2011_09_26_drive_0005_sync/ --output html
 
-# Preprocess
-preprocessor = Preprocessor(voxel_size=0.05, remove_outliers=True)
-frames = preprocessor.process_sequence(frames)
+# Limit frames and customize output
+roboqa sync dataset/2011_09_26_drive_0005_sync/ --max-frames 500 --output-dir reports/sync/
 
-# Detect anomalies
-detector = AnomalyDetector()
-result = detector.detect(frames)
-
-# Generate report
-report_generator = ReportGenerator(output_dir="reports")
-report_generator.generate(result, "bag_file.db3", output_format="all")
+# Use configuration file for custom sensor mappings and thresholds
+roboqa sync dataset/2011_09_26_drive_0005_sync/ --config examples/config_sync.yaml
 ```
 
-## Configuration
+#### 3. Camera-LiDAR Fusion Quality Mode (for multi-sensor datasets)
 
-Create a YAML configuration file to customize analysis parameters:
+```bash
+# Analyze camera-LiDAR fusion quality in a KITTI-format dataset
+roboqa fusion dataset/2011_09_26_drive_0005_sync/
 
-```yaml
-# config.yaml
-topics:
-  - /velodyne_points
+# Limit number of frames to analyze
+roboqa fusion dataset/2011_09_26_drive_0005_sync/ --max-frames 500
 
-max_frames: 1000
+# Customize output directory
+roboqa fusion dataset/2011_09_26_drive_0005_sync/ --output-dir reports/fusion/
 
-preprocessing:
-  voxel_size: 0.05
-  remove_outliers: true
-
-detection:
-  threshold: 0.5
-  disabled: []
-
-output: all
-output_dir: reports
+# Use configuration file for custom parameters
+roboqa fusion dataset/2011_09_26_drive_0005_sync/ --config examples/config_fusion.yaml
 ```
 
-See `examples/config_example.yaml` for a complete configuration example. -->
+**Note on Calibration Files**: For accurate fusion quality assessment, calibration files are required:
+- `calib_velo_to_cam.txt`: Velodyne to camera transformation
+- `calib_cam_to_cam.txt`: Camera intrinsics and rectification
 
+Place these files in the dataset root directory. If not available, you can download official KITTI calibration files from the [KITTI dataset website](http://www.cvlibs.net/datasets/kitti/).
 
+#### 4. Dataset Health Assessment Mode (for multi-sensor sequences)
 
+```bash
+# Basic health assessment on a dataset folder
+roboqa health dataset/
+
+# With custom output directory
+roboqa health dataset/ --output-dir reports/health/
+
+# Generate plots and visualizations
+roboqa health dataset/ --output-dir reports/health/
+
+# Enable verbose output to see detailed processing info
+roboqa health dataset/ --verbose
+```
+
+### Troubleshooting (Handling Large Point Clouds (KITTI, Outdoor LiDAR))
+
+For datasets with large point clouds (100k+ points per frame), use voxel downsampling to avoid memory issues:
+
+```bash
+# Recommended settings for KITTI or similar large datasets
+roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --config examples/config_anomaly_kitti.yaml
+
+# Or use CLI arguments directly
+roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 50000
+```
+
+**Key parameters:**
+- `--voxel-size 0.1`: Downsample point clouds to ~20-30k points (adjust based on your needs)
+- `--max-points-for-outliers 50000`: Skip outlier removal for point clouds exceeding this limit
+- Use the pre-configured `examples/config_anomaly_kitti.yaml` for optimal KITTI settings
 
 ## Project Structure
 
 (For more details check [here](PROJECT_STRUCTURE.md))
 
 ```
-RoboQA/
-├── roboqa_temporal/          # Main package
-│   ├── loader/               # ROS2 bag file loader
-│   ├── preprocessing/        # Point cloud preprocessing
-│   ├── detection/            # Anomaly detection algorithms
-│   ├── reporting/            # Report generation
-│   ├── cli/                  # Command-line interface
-├── tests/                    # Unit tests
-├── examples/                 # Example scripts and configs
-├── .docs/                     # Documentation
-└── README.md
+.
+└── roboqa-temporal
+    ├── CONTRIBUTING.md                     # Contributing guidelines
+    ├── dataset/                            # Sample datasets (KITTI format)
+    ├── .docs/                              # Documentation and presentations
+    ├── examples                            # Example scripts and configs
+    │   ├── config_anomaly_example.yaml
+    │   ├── config_anomaly_kitti.yaml
+    │   ├── config_sync.yaml
+    │   ├── example_anomaly.py
+    │   ├── example_sync.py
+    │   └── synthetic_data_generator.py
+    ├── LICENSE                             # MIT License
+    ├── PROJECT_STRUCTURE.md                # Detailed documentation on project structure
+    ├── pyproject.toml
+    ├── README.md
+    ├── reports                             # Output reports directory
+    ├── requirements.txt
+    ├── src
+    │   └── roboqa_temporal                 # Main package
+    │       ├── __init__.py
+    │       ├── cli                         # Command-line interface
+    │       │   └── main.py
+    │       ├── detection                   # Anomaly detection algorithms
+    │       │   ├── detector.py
+    │       │   ├── detectors.py
+    │       ├── fusion                      # Camera-LiDAR fusion quality assessment
+    │       │   └── fusion_quality_validator.py
+    │       ├── loader                      # ROS2 bag file loader
+    │       │   ├── bag_loader.py
+    │       ├── preprocessing               # Point cloud preprocessing
+    │       │   └── preprocessor.py
+    │       ├── reporting                   # Report generation
+    │       │   └── report_generator.py
+    │       ├── health_reporting            # Dataset health assessment & quality dashboards
+    │       │   ├── pipeline.py
+    │       │   ├── dashboard.py
+    │       │   ├── exporters.py
+    │       │   └── curation.py
+    │       └── synchronization             # Cross-modal synchronization analysis
+    │           └── temporal_validator.py
+    └── tests
+        ├── conftest.py
+        ├── test_bag_loader.py
+        ├── test_detection_pipeline.py
+        ├── test_edge.py
+        ├── test_one_shot.py
+        ├── test_pattern.py
+        └── test_smoke.py
 ```
 
 ## Features
 
 ### Core Capabilities
 
+#### 1. Anomaly Detection (for ROS2 bags)
 - **Automated Quality Assessment**: Objective and reproducible health checks for robotics datasets
 - **Point Cloud Anomaly Detection**: Detects various anomalies in point cloud sequences:
   - **Density Drops & Occlusions**: Identifies sudden drops in point density
@@ -198,14 +261,41 @@ RoboQA/
   - **Ghost Points**: Highlights points likely due to reflections, multi-path returns, or hardware artifacts
   - **Temporal Inconsistency**: Quantifies smoothness and consistency in spatio-temporal evolution
 
+#### 2. Cross-Modal Synchronization Analysis (for multi-sensor datasets)
+- **Timestamp Drift Detection**: Measure clock offset and drift between sensor streams (e.g., LiDAR, camera, IMU)
+- **Data Loss & Duplication Flagging**: Identify missing, skipped, or duplicate messages across all sensor topics
+- **Temporal Alignment Quality Score**: Quantify overall synchronization fidelity as a numeric metric per sequence
+- **Multi-Sensor Support**: Works with KITTI and similar dataset formats with timestamp files
+- **Comprehensive Drift Analysis**: Includes chi-square tests, Kalman filtering, and cross-correlation analysis
+
+#### 3. Camera-LiDAR Fusion Quality Assessment
+- **Calibration Drift Estimation**: Test for changes in calibration matrices over time, suggesting potential hardware re-calibration needs
+- **Projection Error Quantification**: Measure the error when projecting 3D points into camera images throughout a sequence; spotlight instances with increasing error
+- **Illumination and Scene Change Detection**: Detect lighting changes and their adverse effects on matching and tracking
+- **Moving Object Detection Quality**: Evaluate how well dynamic objects are consistently detected in fusion scenarios; quantify detection rate and quality over time
+- **Comprehensive HTML Reports**: Professional reports with metrics visualization, recommendations, and interpretation guides
+
+#### 4. Dataset Health Assessment & Quality Scoring
+- **Temporal Quality Metrics**: Analyze frame spacing regularity, detect timing anomalies, and assess LiDAR scan duration stability across sequences
+- **Completeness Analysis**: Quantify message availability, identify dropout patterns, and evaluate temporal coverage gaps for each sensor stream
+- **Health Tier Classification**: Automatically categorize sequences into excellence tiers (excellent/good/fair/poor) based on multi-dimensional quality scores
+- **Curation Recommendations**: Generate actionable recommendations for sequence inclusion, exclusion, or review based on configurable quality thresholds
+- **Interactive Quality Dashboards**: Plotly-based HTML dashboards with multi-plot visualizations, dimension comparisons, and cross-sequence benchmarking
+- **Multi-Format Export**: Export metrics to CSV, JSON, and YAML for integration with external validation pipelines, MLOps tools, and curation workflows
+- **Percentile Ranking**: Compare sequence quality within datasets using percentile-based scoring for prioritization and dataset balancing
+
 ### Key Features
 
+- **Triple Operation Modes**: Support for anomaly detection, synchronization analysis, and fusion quality assessment
 - **ROS2 Bag Support**: Efficient reading and processing of ROS2 bag files
-- **Modular Architecture**: Extensible design with separate modules for loading, preprocessing, detection, and reporting
+- **Multi-Sensor Dataset Support**: Works with KITTI-format datasets and other image sequence formats
+- **Modular Architecture**: Extensible design with separate modules for loading, preprocessing, detection, synchronization, fusion, and reporting
 - **Multiple Output Formats**: Generate reports in Markdown, HTML (with visualizations), and CSV
-- **Comprehensive CLI**: Easy-to-use command-line interface
+- **Comprehensive CLI**: Easy-to-use command-line interface with mode selection
 - **Configuration Support**: YAML-based configuration files for flexible parameter tuning
-- **Visualization**: Interactive plots and charts in HTML reports
+- **Visualization**: Interactive plots, temporal heatmaps, and charts in HTML reports
+- **Timestamp Corrections**: Exports recommended timestamp corrections as YAML parameter files
+- **Calibration Assessment**: Professional evaluation of camera-LiDAR sensor fusion quality with detailed metrics
 
 ## Contributing
 

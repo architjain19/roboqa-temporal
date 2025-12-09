@@ -1,0 +1,97 @@
+################################################################
+
+# File: examples/config_fusion.yaml
+# Created: 2025-12-08
+# Created by: Archit Jain (architj@uw.edu)
+# Last Modified: 2025-12-08
+# Last Modified by: Archit Jain (architj@uw.edu)
+
+#################################################################
+
+# Copyright: RoboQA-Temporal Authors
+# License: MIT License
+
+################################################################
+
+# Configuration file for Camera-LiDAR Fusion Quality Assessment.
+
+# This file contains configurable parameters for the fusion quality
+# validator, allowing customization of thresholds and behavior.
+
+################################################################
+
+
+# Calibration quality thresholds
+calibration:
+  # Threshold for edge alignment score (0-1, higher is better)
+  edge_alignment_threshold: 0.05
+  
+  # Threshold for mutual information score (0-1+, higher is better)
+  mutual_information_threshold: 0.05
+  
+  # Threshold for contrastive score (0-1, higher is better)
+  contrastive_threshold: 0.8
+  
+  # Overall pass threshold (all metrics must exceed this for PASS)
+  pass_threshold: 0.8
+
+# Projection error analysis
+projection:
+  # Maximum acceptable reprojection error
+  max_error_threshold: 10.0
+  
+  # Flag if error increases by this percentage frame-to-frame
+  error_increase_threshold: 0.1  # 10%
+  
+  # Minimum number of points required for error calculation
+  min_points_threshold: 10
+
+# Illumination detection
+illumination:
+  # Brightness change threshold to flag light source change
+  brightness_change_threshold: 30
+  
+  # Minimum scene change score to flag modification
+  scene_change_threshold: 0.5
+  
+  # Minimum contrast to consider well-lit scene
+  min_contrast_threshold: 0.1
+
+# Moving object detection
+moving_objects:
+  # Grid cell size for object detection (meters)
+  grid_cell_size: 1.0
+  
+  # Minimum points in grid cell to consider an object
+  min_points_per_cluster: 10
+  
+  # Confidence threshold for valid detections
+  confidence_threshold: 0.3
+  
+  # Temporal consistency threshold
+  consistency_threshold: 0.5
+
+# Output options
+output:
+  # Generate HTML report
+  generate_html: true
+  
+  # Generate YAML parameter file with corrections
+  generate_yaml: true
+  
+  # Include visualization plots in HTML
+  include_plots: true
+  
+  # Report directory name
+  report_dir: "reports/fusion"
+
+# Dataset specific settings
+dataset:
+  # Default camera ID (KITTI format: image_00, image_01, image_02, image_03)
+  camera_id: "image_02"
+  
+  # Default LiDAR ID (KITTI format: velodyne_points)
+  lidar_id: "velodyne_points"
+  
+  # Maximum frames to process (null = all frames)
+  max_frames: null

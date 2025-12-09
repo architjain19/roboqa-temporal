@@ -1,0 +1,73 @@
+################################################################
+
+# File: examples/config_anomaly_kitti.yaml
+# Created: 2025-11-27
+# Created by: Archit Jain (architj@uw.edu)
+# Last Modified: 2025-11-30
+# Last Modified by: Archit Jain (architj@uw.edu)
+
+#################################################################
+
+# Copyright: RoboQA-Temporal Authors
+# License: MIT License
+
+################################################################
+
+# RoboQA-Temporal Configuration for KITTI Dataset
+# Optimized settings for large point clouds (100k+ points)
+
+################################################################
+
+# Topics to analyze (leave empty or null to auto-detect)
+topics: null
+
+# Maximum number of frames to process (null = all)
+# For very large datasets, consider limiting frames to reduce memory usage
+# e.g., max_frames: 100 for testing, then increase as needed
+max_frames: null
+
+# Preprocessing options
+preprocessing:
+  # Voxel size for downsampling
+  # KITTI point clouds are very dense (~120k points), so downsample to manageable size
+  # 0.15m voxel size typically reduces to ~15-25k points (safe for outlier removal)
+  # 0.1m voxel size typically reduces to ~20-30k points
+  # Increase if still getting warnings about exceeding max_points_for_outliers
+  voxel_size: 0.5
+  
+  # Remove outliers after downsampling
+  remove_outliers: true
+  
+  # Maximum number of points for outlier removal
+  # After downsampling with voxel_size=0.1, point clouds should be under this limit
+  max_points_for_outliers: 50000
+  
+  # Outlier removal method: 'statistical', 'radius', or 'lof'
+  outlier_method: statistical
+  
+  # Outlier removal parameters (tuned for outdoor LiDAR)
+  outlier_params:
+    nb_neighbors: 20
+    std_ratio: 2.5  # Slightly higher tolerance for outdoor scenes
+
+# Detection options
+detection:
+  # Global threshold for anomaly detection (0.0 to 1.0)
+  # Higher threshold = fewer false positives
+  threshold: 0.6
+  
+  # Disable specific detectors if needed
+  disabled: []
+  
+  # Detector-specific thresholds (optional)
+  density_threshold: 0.6
+  spatial_threshold: 0.6
+  ghost_threshold: 0.7
+  temporal_threshold: 0.5
+
+# Output options
+output: all  # markdown, html, csv, or all
+output_dir: reports
+
+# Include plots in HTML reports
+include_plots: true
