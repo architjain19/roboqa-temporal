@@ -6,7 +6,8 @@ Created by: Sayali Nehul
 Last Modified: 2025-12-07
 Last Modified by: Sayali Nehul
 #################################################################
-Data export utilities for Feature 4.Exports a Pandas DataFrame 
+Data export utilities for Dataset Quality Scoring &
+Cross-Benchmarking (Feature 4). Exports a Pandas DataFrame 
 containing dataset quality metrics into CSV or JSON format. 
 The module ensures that output directories exist and produces 
 clean, analysis-ready files for downstream visualizers,dashboards,
