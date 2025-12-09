@@ -26,6 +26,12 @@ roboqa-temporal/
 │   ├── fusion/                         # Camera-LiDAR fusion quality assessment
 │   │   ├── __init__.py
 │   │   └── fusion_quality_validator.py # CalibrationQualityValidator for fusion metrics
+│   ├── health_reporting/               # Dataset health assessment & quality dashboards
+│   │   ├── __init__.py
+│   │   ├── pipeline.py                 # Core metrics computation and orchestration
+│   │   ├── dashboard.py                # Interactive dashboards and visualizations
+│   │   ├── exporters.py                # Multi-format export (CSV/JSON/YAML)
+│   │   └── curation.py                 # Sequence curation recommendations
 │   ├── reporting/                      # Report generation
 │   │   ├── __init__.py 
 │   │   └── report_generator.py         # ReportGenerator for multiple formats
@@ -95,6 +101,13 @@ roboqa-temporal/
 - **IlluminationFrame**: Illumination change metrics for a single frame
 - **MovingObjectFrame**: Moving object detection quality for a single frame
 - **CalibrationQualityReport**: Complete fusion quality assessment report
+
+### health_reporting/
+- **run_health_check**: Main orchestration function for dataset health assessment
+- **pipeline.py**: Core metrics computation (temporal score, anomaly score, completeness metrics)
+- **dashboard.py**: Interactive Plotly dashboards and PNG visualizations
+- **exporters.py**: Multi-format export (CSV, JSON, YAML) and summary reports
+- **curation.py**: Automated sequence curation recommendations with severity levels
 
 ### reporting/
 - **ReportGenerator**: Creates quality assessment reports
@@ -303,6 +316,36 @@ Quantifies smoothness and consistency in spatio-temporal evolution:
 - Recommended timestamp corrections
 - Mean/max offsets per sensor pair
 - Drift rates for each pair
+
+### Health Reporting & Dataset Quality Assessment
+
+#### HTML Report (Dashboard)
+- Plotly-based multi-panel visualization
+- Overall quality per sequence (bar chart)
+- Timeliness dimension analysis (line chart)
+- Completeness dimension analysis (line chart)
+- Temporal vs anomaly score comparison
+- Quality dimension status table with implementation status
+
+#### Structured Metrics Exports
+- **CSV**: Per-sensor detailed metrics and per-sequence aggregated metrics
+- **JSON**: Structured format for external tool integration and ML pipelines
+- **YAML**: Human-readable configuration format with quality metadata
+
+#### Summary Reports
+- **TXT**: Text-based summary with statistics, tier distribution, best/worst sequences
+- Detailed per-sequence breakdown with all quality dimensions
+
+#### Visualizations (PNG)
+- Quality scores bar chart with color-coded tiers
+- Dimension comparison chart (timeliness vs completeness)
+- Health tier distribution chart
+
+#### Curation Recommendations
+- **TXT**: Detailed human-readable curation guidance
+- **JSON**: Machine-readable recommendations for pipeline integration
+- Severity-based categorization (critical/high/medium/low)
+- Actionable recommendations: exclude, review, or monitor
 
 ## Testing
 
