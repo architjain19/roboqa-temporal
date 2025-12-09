@@ -1,27 +1,22 @@
 """
 ################################################################
-File: roboqa_temporal/dataset_quality/feature4_pipeline.py
-Author: Sayali Nehul
+File:feature4_pipeline.py
+Created: 2025-12-07
+Created by: Sayali Nehul (snehul@uw.edu)
+Last Modified: 2025-12-07
+Last Modified by: Sayali Nehul (snehul@uw.edu)
 ################################################################
-
-Feature 4 – Dataset Quality Scoring & Cross-Benchmarking (KITTI).
-
+Feature 4 – Dataset Quality Scoring & Cross-Benchmarking (KITTI)
 Scans a KITTI-style sequences root directory, loads per-sensor
 timestamps (camera, LiDAR, OXTS), and computes simple Feature-4-like
 metrics for each sequence:
-
 - temporal_score
 - anomaly_score
 - multimodal_health_score
-- health_tier  (e.g., excellent / good / fair / poor)
-
+- health_tier  
 Outputs:
 - feature4_kitti_metrics.csv   (tabular metrics per sequence)
 - feature4_health_scores.png   (visual summary / bar chart)
-
-This pipeline is independent of Feature 1 and Feature 2, and is
-designed to run directly on KITTI raw data folders.
-
 ################################################################
 """
 
