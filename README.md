@@ -71,6 +71,7 @@ pip install -e .
 - `pandas` >= 1.3.0
 - `matplotlib` >= 3.5.0
 - `seaborn` >= 0.11.0
+- `plotly` >= 5.0.0
 - `pyyaml` >= 6.0
 - `tqdm` >= 4.62.0
 - `tabulate` >= 0.9.0
@@ -100,7 +101,7 @@ The integration tests exercise the ROS 2 loader and other anomaly and quality te
 
 ### Usage
 
-RoboQA-Temporal now supports three main operation modes:
+RoboQA-Temporal now supports four main operation modes:
 
 #### 1. Anomaly Detection Mode (for ROS2 bags)
 
@@ -159,6 +160,22 @@ roboqa fusion dataset/2011_09_26_drive_0005_sync/ --config examples/config_fusio
 
 Place these files in the dataset root directory. If not available, you can download official KITTI calibration files from the [KITTI dataset website](http://www.cvlibs.net/datasets/kitti/).
 
+#### 4. Dataset Health Assessment Mode (for multi-sensor sequences)
+
+```bash
+# Basic health assessment on a dataset folder
+roboqa health dataset/
+
+# With custom output directory
+roboqa health dataset/ --output-dir reports/health/
+
+# Generate plots and visualizations
+roboqa health dataset/ --output-dir reports/health/
+
+# Enable verbose output to see detailed processing info
+roboqa health dataset/ --verbose
+```
+
 ### Troubleshooting (Handling Large Point Clouds (KITTI, Outdoor LiDAR))
 
 For datasets with large point clouds (100k+ points per frame), use voxel downsampling to avoid memory issues:
@@ -215,6 +232,11 @@ roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 5
     │       │   └── preprocessor.py
     │       ├── reporting                   # Report generation
     │       │   └── report_generator.py
+    │       ├── health_reporting            # Dataset health assessment & quality dashboards
+    │       │   ├── pipeline.py
+    │       │   ├── dashboard.py
+    │       │   ├── exporters.py
+    │       │   └── curation.py
     │       └── synchronization             # Cross-modal synchronization analysis
     │           └── temporal_validator.py
     └── tests
@@ -252,6 +274,15 @@ roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 5
 - **Illumination and Scene Change Detection**: Detect lighting changes and their adverse effects on matching and tracking
 - **Moving Object Detection Quality**: Evaluate how well dynamic objects are consistently detected in fusion scenarios; quantify detection rate and quality over time
 - **Comprehensive HTML Reports**: Professional reports with metrics visualization, recommendations, and interpretation guides
+
+#### 4. Dataset Health Assessment & Quality Scoring
+- **Temporal Quality Metrics**: Analyze frame spacing regularity, detect timing anomalies, and assess LiDAR scan duration stability across sequences
+- **Completeness Analysis**: Quantify message availability, identify dropout patterns, and evaluate temporal coverage gaps for each sensor stream
+- **Health Tier Classification**: Automatically categorize sequences into excellence tiers (excellent/good/fair/poor) based on multi-dimensional quality scores
+- **Curation Recommendations**: Generate actionable recommendations for sequence inclusion, exclusion, or review based on configurable quality thresholds
+- **Interactive Quality Dashboards**: Plotly-based HTML dashboards with multi-plot visualizations, dimension comparisons, and cross-sequence benchmarking
+- **Multi-Format Export**: Export metrics to CSV, JSON, and YAML for integration with external validation pipelines, MLOps tools, and curation workflows
+- **Percentile Ranking**: Compare sequence quality within datasets using percentile-based scoring for prioritization and dataset balancing
 
 ### Key Features
 
