@@ -94,6 +94,209 @@ def test_detector_with_extreme_thresholds():
     assert isinstance(result, DetectionResult)
 
 
+def test_sensor_stream_with_empty_timestamps():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    stream = SensorStream(
+        name="empty_stream",
+        source_path="/fake/path",
+        timestamps_ns=[],
+        expected_frequency=10.0,
+    )
+    
+    assert stream.timestamps_sec.size == 0
+    assert stream.frequency_estimate_hz is None
+    assert stream.metadata["message_count"] == 0
+
+
+def test_sensor_stream_with_single_timestamp():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    stream = SensorStream(
+        name="single_stream",
+        source_path="/fake/path",
+        timestamps_ns=[1000000000],
+        expected_frequency=10.0,
+    )
+    
+    assert stream.timestamps_sec.size == 1
+    assert stream.frequency_estimate_hz is None
+    assert stream.metadata["message_count"] == 1
+
+
+def test_sensor_stream_with_negative_timestamps():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    timestamps_ns = [-1000000000, -900000000, -800000000]
+    stream = SensorStream(
+        name="negative_stream",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.timestamps_sec.size == 3
+    assert stream.frequency_estimate_hz is not None
+
+
+def test_sensor_stream_with_unordered_timestamps():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    timestamps_ns = [1000000000, 1200000000, 1100000000, 1300000000]
+    stream = SensorStream(
+        name="unordered_stream",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.timestamps_sec.size == 4
+
+
+def test_sensor_stream_with_zero_intervals():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    timestamps_ns = [1000000000, 1000000000, 1000000000]
+    stream = SensorStream(
+        name="zero_interval_stream",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.timestamps_sec.size == 3
+    assert stream.metadata["duplicate_frames"] > 0
+
+
+def test_temporal_sync_validator_with_extreme_frequencies():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator, SensorStream
+    
+    high_freq_ts = list(range(0, 1000000, 1000))  # 1000 Hz
+    low_freq_ts = list(range(0, 1000000000, 1000000000))  # 1 Hz
+    
+    streams = {
+        "high_freq": SensorStream(
+            name="high_freq",
+            source_path="/fake/high",
+            timestamps_ns=high_freq_ts,
+            expected_frequency=1000.0,
+        ),
+        "low_freq": SensorStream(
+            name="low_freq",
+            source_path="/fake/low",
+            timestamps_ns=low_freq_ts,
+            expected_frequency=1.0,
+        ),
+    }
+    
+    validator = TemporalSyncValidator(auto_export_reports=False)
+    report = validator.analyze_streams(streams, dataset_name="extreme_freq", include_visualizations=False)
+    
+    assert report is not None
+    assert len(report.streams) == 2
+
+
+def test_temporal_sync_validator_with_huge_time_gaps():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator, SensorStream
+    import numpy as np
+    
+    timestamps_ns = [
+        1000000000,
+        1100000000,
+        5000000000,
+        5100000000,
+    ]
+    
+    stream = SensorStream(
+        name="gappy_stream",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    streams = {"gappy": stream}
+    validator = TemporalSyncValidator(auto_export_reports=False)
+    report = validator.analyze_streams(streams, dataset_name="gappy_test", include_visualizations=False)
+    
+    assert report is not None
+    assert stream.metadata["missing_frames"] > 0
+
+
+def test_temporal_sync_validator_with_nan_timestamps():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    import numpy as np
+    
+    timestamps_ns = [1000000000, 1100000000, int(np.nan) if not np.isnan(np.nan) else 0]
+    
+    stream = SensorStream(
+        name="nan_stream",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.timestamps_sec.size == 3
+
+
+def test_temporal_sync_validator_custom_thresholds():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: edge test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator
+    
+    validator = TemporalSyncValidator(
+        approximate_time_threshold_ms={
+            "camera_left_lidar": 0.001,
+        },
+        rolling_window=1,
+    )
+    
+    assert validator.approximate_time_threshold_ms["camera_left_lidar"] == 0.001
+    assert validator.rolling_window == 1
+
+
 def test_preprocessor_downsample_with_zero_voxel_size():
     """
     author: architjain
