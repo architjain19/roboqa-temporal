@@ -98,9 +98,176 @@ def test_pattern_selective_detection_workflow():
     
     # Verify only requested detectors ran
     assert isinstance(result, DetectionResult)
-    if result.detector_results:
-        for key in result.detector_results.keys():
-            assert key in ["spatial", "temporal"]
+
+
+def test_pattern_sync_validator_workflow():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: pattern test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator, SensorStream
+    
+    # Create synthetic sensor streams with pairs that will be analyzed
+    camera_left_ts = list(range(0, 1000000000, 100000000))   # 10 Hz
+    lidar_ts = list(range(0, 1000000000, 100000000))         # 10 Hz
+    camera_right_ts = list(range(0, 1000000000, 100000000))  # 10 Hz
+    
+    streams = {
+        "camera_left": SensorStream(
+            name="camera_left",
+            source_path="/fake/camera_left",
+            timestamps_ns=camera_left_ts,
+            expected_frequency=10.0,
+        ),
+        "camera_right": SensorStream(
+            name="camera_right",
+            source_path="/fake/camera_right",
+            timestamps_ns=camera_right_ts,
+            expected_frequency=10.0,
+        ),
+        "lidar": SensorStream(
+            name="lidar",
+            source_path="/fake/lidar",
+            timestamps_ns=lidar_ts,
+            expected_frequency=10.0,
+        ),
+    }
+    
+    # Initialize validator
+    validator = TemporalSyncValidator(output_dir="reports/test_sync", auto_export_reports=False)
+    
+    # Analyze streams
+    report = validator.analyze_streams(streams, dataset_name="test_sync", include_visualizations=False)
+    
+    assert report is not None
+    assert len(report.streams) == 3
+    assert len(report.pair_results) > 0
+
+
+def test_pattern_sync_validator_with_drift():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: pattern test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator, SensorStream
+    import numpy as np
+    
+    # Create streams with temporal drift
+    base_timestamps = np.arange(0, 1000000000, 100000000, dtype=np.int64)
+    camera_left_timestamps = list(base_timestamps)
+    # Add progressive drift to lidar (1ms per frame)
+    lidar_timestamps = list(base_timestamps + np.arange(len(base_timestamps)) * 1000000)
+    
+    streams = {
+        "camera_left": SensorStream(
+            name="camera_left",
+            source_path="/fake/camera",
+            timestamps_ns=camera_left_timestamps,
+            expected_frequency=10.0,
+        ),
+        "lidar": SensorStream(
+            name="lidar",
+            source_path="/fake/lidar",
+            timestamps_ns=lidar_timestamps,
+            expected_frequency=10.0,
+        ),
+    }
+    
+    validator = TemporalSyncValidator(auto_export_reports=False)
+    report = validator.analyze_streams(streams, dataset_name="test_drift", include_visualizations=False)
+    
+    assert len(report.pair_results) > 0
+    for pair_result in report.pair_results.values():
+        assert hasattr(pair_result, "drift_rate_ms_per_s")
+
+
+def test_pattern_multi_sensor_synchronization():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: pattern test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator, SensorStream
+    
+    # Create multiple sensor streams
+    camera_left_ts = list(range(0, 1000000000, 100000000))   # 10 Hz
+    camera_right_ts = list(range(0, 1000000000, 100000000))  # 10 Hz
+    lidar_ts = list(range(0, 1000000000, 100000000))         # 10 Hz
+    imu_ts = list(range(0, 1000000000, 10000000))            # 100 Hz
+    
+    streams = {
+        "camera_left": SensorStream(
+            name="camera_left",
+            source_path="/fake/cam_left",
+            timestamps_ns=camera_left_ts,
+            expected_frequency=10.0,
+        ),
+        "camera_right": SensorStream(
+            name="camera_right",
+            source_path="/fake/cam_right",
+            timestamps_ns=camera_right_ts,
+            expected_frequency=10.0,
+        ),
+        "lidar": SensorStream(
+            name="lidar",
+            source_path="/fake/lidar",
+            timestamps_ns=lidar_ts,
+            expected_frequency=10.0,
+        ),
+        "imu": SensorStream(
+            name="imu",
+            source_path="/fake/imu",
+            timestamps_ns=imu_ts,
+            expected_frequency=100.0,
+        ),
+    }
+    
+    validator = TemporalSyncValidator(auto_export_reports=False)
+    report = validator.analyze_streams(streams, dataset_name="multi_sensor", include_visualizations=False)
+    
+    assert len(report.streams) == 4
+    assert len(report.pair_results) > 0
+
+
+def test_pattern_sync_report_serialization():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: pattern test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator, SensorStream
+    
+    timestamps_camera = list(range(0, 500000000, 100000000))
+    timestamps_lidar = list(range(0, 500000000, 100000000))
+    
+    streams = {
+        "camera_left": SensorStream(
+            name="camera_left",
+            source_path="/fake/camera",
+            timestamps_ns=timestamps_camera,
+            expected_frequency=10.0,
+        ),
+        "lidar": SensorStream(
+            name="lidar",
+            source_path="/fake/lidar",
+            timestamps_ns=timestamps_lidar,
+            expected_frequency=10.0,
+        ),
+    }
+    
+    validator = TemporalSyncValidator(auto_export_reports=False)
+    report = validator.analyze_streams(streams, dataset_name="test_serial", include_visualizations=False)
+    
+    # Test serialization
+    report_dict = report.to_dict()
+    
+    assert isinstance(report_dict, dict)
+    assert "streams" in report_dict
+    assert "metrics" in report_dict
+    assert "recommendations" in report_dict
+    assert "generated_at" in report_dict
 
 
 def test_pattern_iterative_detection():

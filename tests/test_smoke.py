@@ -69,3 +69,56 @@ def test_report_generator_instantiation():
     from roboqa_temporal.reporting import ReportGenerator
     generator = ReportGenerator()
     assert generator is not None
+
+
+def test_temporal_sync_validator_importable():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: smoke test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator
+    assert TemporalSyncValidator is not None
+
+
+def test_temporal_sync_validator_instantiation():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: smoke test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator
+    validator = TemporalSyncValidator()
+    assert validator is not None
+    assert hasattr(validator, 'validate')
+    assert hasattr(validator, 'analyze_streams')
+
+
+def test_sensor_stream_importable():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: smoke test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    assert SensorStream is not None
+
+
+def test_temporal_sync_report_importable():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: smoke test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncReport
+    assert TemporalSyncReport is not None
+
+
+def test_pairwise_drift_result_importable():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: smoke test
+    """
+    from roboqa_temporal.synchronization import PairwiseDriftResult
+    assert PairwiseDriftResult is not None

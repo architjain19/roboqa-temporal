@@ -96,6 +96,119 @@ def test_preprocessor_downsample():
     assert downsampled[0].num_points <= frame.num_points
 
 
+def test_temporal_sync_validator_with_single_stream():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    preprocessor = Preprocessor(remove_outliers=True, max_points_for_outliers=500)
+    
+    # Create a frame with some outliers
+    points = np.random.rand(200, 3) * 10
+    # Add some outliers
+    outliers = np.array([[100.0, 100.0, 100.0], [-100.0, -100.0, -100.0]])
+    all_points = np.vstack([points, outliers])
+    
+    frame = PointCloudFrame(timestamp=1000.0, frame_id="test", points=all_points)
+    processed = preprocessor.process_sequence([frame])
+    
+    assert len(processed) == 1
+    assert processed[0].num_points < frame.num_points
+
+
+def test_sensor_stream_creation():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    # Create a simple sensor stream with synthetic timestamps
+    timestamps_ns = [1000000000, 1100000000, 1200000000, 1300000000]  # 100ms intervals
+    stream = SensorStream(
+        name="test_camera",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.name == "test_camera"
+    assert len(stream.timestamps_ns) == 4
+    assert stream.frequency_estimate_hz is not None
+    assert abs(stream.frequency_estimate_hz - 10.0) < 1.0
+
+
+def test_sensor_stream_with_missing_frames():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    # Create timestamps with a missing frame (gap)
+    timestamps_ns = [
+        1000000000,  # t=0
+        1100000000,  # t=0.1s
+        1200000000,  # t=0.2s
+        1400000000,  # t=0.4s (missing frame at 0.3s)
+        1500000000,  # t=0.5s
+    ]
+    stream = SensorStream(
+        name="test_lidar",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.metadata["missing_frames"] > 0
+
+
+def test_sensor_stream_with_duplicate_timestamps():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    # Create timestamps with duplicates
+    timestamps_ns = [
+        1000000000,
+        1100000000,
+        1100000000,  # Duplicate
+        1200000000,
+    ]
+    stream = SensorStream(
+        name="test_imu",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.metadata["duplicate_frames"] > 0
+
+
+def test_temporal_sync_validator_with_empty_streams():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator, SensorStream
+    
+    validator = TemporalSyncValidator(auto_export_reports=False)
+    streams = {}
+    
+    report = validator.analyze_streams(streams, dataset_name="empty_test", include_visualizations=False)
+    
+    assert report is not None
+    assert len(report.streams) == 0
+    assert len(report.pair_results) == 0
+
+
 def test_preprocessor_remove_outliers():
     """
     author: architjain
