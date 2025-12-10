@@ -6,16 +6,6 @@ RoboQA-Temporal is an open-source, professional Python toolkit focused on automa
 
 ![RoboQA-Logo](.docs/roboqa_logo.png)
 
-## Design/Components/Stories:
-
-### User Stories:
-> User Stories for this project can be found here - [USER_STORIES.md](.docs/USER_STORIES.md)
-
-### User Design:
-> User Desigs for this project can be found here - [USER_DESIGN.md](.docs/USER_DESIGN.md)
-
-### User Components:
-> User Components for this project can be found here - [USER_COMPONENTS.md](.docs/USER_COMPONENTS.md)
 
 ## Installation
 
@@ -50,7 +40,7 @@ cd roboqa-temporal
 python3 -m venv venv
 
 # Activate the virtual environment
-source venv/bin/activate`
+source venv/bin/activate
 
 # 5. Source ROS
 source /opt/ros/humble/setup.bash
@@ -192,6 +182,22 @@ roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 5
 - `--voxel-size 0.1`: Downsample point clouds to ~20-30k points (adjust based on your needs)
 - `--max-points-for-outliers 50000`: Skip outlier removal for point clouds exceeding this limit
 - Use the pre-configured `examples/config_anomaly_kitti.yaml` for optimal KITTI settings
+
+
+## User Stories/Design/Components
+<details>
+  <summary><u>Click for more info</u></summary>
+
+   ### User Stories:
+   > User Stories for this project can be found here - [USER_STORIES.md](.docs/USER_STORIES.md)
+
+   ### User Design:
+   > User Desigs for this project can be found here - [USER_DESIGN.md](.docs/USER_DESIGN.md)
+
+   ### User Components:
+   > User Components for this project can be found here - [USER_COMPONENTS.md](.docs/USER_COMPONENTS.md)  
+  
+</details>
 
 ## Project Structure
 

@@ -96,6 +96,119 @@ def test_preprocessor_downsample():
     assert downsampled[0].num_points <= frame.num_points
 
 
+def test_temporal_sync_validator_with_single_stream():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    preprocessor = Preprocessor(remove_outliers=True, max_points_for_outliers=500)
+    
+    # Create a frame with some outliers
+    points = np.random.rand(200, 3) * 10
+    # Add some outliers
+    outliers = np.array([[100.0, 100.0, 100.0], [-100.0, -100.0, -100.0]])
+    all_points = np.vstack([points, outliers])
+    
+    frame = PointCloudFrame(timestamp=1000.0, frame_id="test", points=all_points)
+    processed = preprocessor.process_sequence([frame])
+    
+    assert len(processed) == 1
+    assert processed[0].num_points < frame.num_points
+
+
+def test_sensor_stream_creation():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    # Create a simple sensor stream with synthetic timestamps
+    timestamps_ns = [1000000000, 1100000000, 1200000000, 1300000000]  # 100ms intervals
+    stream = SensorStream(
+        name="test_camera",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.name == "test_camera"
+    assert len(stream.timestamps_ns) == 4
+    assert stream.frequency_estimate_hz is not None
+    assert abs(stream.frequency_estimate_hz - 10.0) < 1.0
+
+
+def test_sensor_stream_with_missing_frames():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    # Create timestamps with a missing frame (gap)
+    timestamps_ns = [
+        1000000000,  # t=0
+        1100000000,  # t=0.1s
+        1200000000,  # t=0.2s
+        1400000000,  # t=0.4s (missing frame at 0.3s)
+        1500000000,  # t=0.5s
+    ]
+    stream = SensorStream(
+        name="test_lidar",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.metadata["missing_frames"] > 0
+
+
+def test_sensor_stream_with_duplicate_timestamps():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    from roboqa_temporal.synchronization import SensorStream
+    
+    # Create timestamps with duplicates
+    timestamps_ns = [
+        1000000000,
+        1100000000,
+        1100000000,  # Duplicate
+        1200000000,
+    ]
+    stream = SensorStream(
+        name="test_imu",
+        source_path="/fake/path",
+        timestamps_ns=timestamps_ns,
+        expected_frequency=10.0,
+    )
+    
+    assert stream.metadata["duplicate_frames"] > 0
+
+
+def test_temporal_sync_validator_with_empty_streams():
+    """
+    author: xinxin
+    reviewer: sayali
+    category: one-shot test
+    """
+    from roboqa_temporal.synchronization import TemporalSyncValidator, SensorStream
+    
+    validator = TemporalSyncValidator(auto_export_reports=False)
+    streams = {}
+    
+    report = validator.analyze_streams(streams, dataset_name="empty_test", include_visualizations=False)
+    
+    assert report is not None
+    assert len(report.streams) == 0
+    assert len(report.pair_results) == 0
+
+
 def test_preprocessor_remove_outliers():
     """
     author: architjain
@@ -160,3 +273,268 @@ def test_detection_result_creation():
     assert len(result.anomalies) == 1
     assert result.health_metrics["overall_health_score"] == 0.8
     assert len(result.frame_statistics) == 1
+
+
+def test_calibration_stream_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import CalibrationStream
+    
+    stream = CalibrationStream(
+        name="camera_lidar_pair",
+        image_paths=["/fake/img1.png", "/fake/img2.png"],
+        pointcloud_paths=["/fake/pc1.bin", "/fake/pc2.bin"],
+        calibration_file="/fake/calib.txt",
+        camera_id="cam_02",
+        lidar_id="velodyne"
+    )
+    
+    assert stream.name == "camera_lidar_pair"
+    assert len(stream.image_paths) == 2
+    assert len(stream.pointcloud_paths) == 2
+    assert stream.camera_id == "cam_02"
+
+
+def test_calibration_pair_result_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import CalibrationPairResult
+    
+    result = CalibrationPairResult(
+        geom_edge_score=0.85,
+        mutual_information=0.75,
+        contrastive_score=0.80,
+        pass_geom_edge=True,
+        pass_mi=True,
+        pass_contrastive=True,
+        overall_pass=True,
+        details={"frames_analyzed": 10}
+    )
+    
+    assert result.geom_edge_score == 0.85
+    assert result.overall_pass is True
+    assert result.details["frames_analyzed"] == 10
+
+
+def test_projection_error_frame_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import ProjectionErrorFrame
+    
+    error_frame = ProjectionErrorFrame(
+        frame_index=5,
+        timestamp=1500.0,
+        reprojection_error=2.5,
+        max_error_point=(100.0, 200.0),
+        projected_points_count=150,
+        error_trend="increasing"
+    )
+    
+    assert error_frame.frame_index == 5
+    assert error_frame.reprojection_error == 2.5
+    assert error_frame.error_trend == "increasing"
+    assert error_frame.projected_points_count == 150
+
+
+def test_illumination_frame_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import IlluminationFrame
+    
+    illum_frame = IlluminationFrame(
+        frame_index=10,
+        timestamp=2000.0,
+        brightness_mean=128.5,
+        brightness_std=45.2,
+        contrast=0.65,
+        scene_change_score=0.3,
+        light_source_change=False
+    )
+    
+    assert illum_frame.frame_index == 10
+    assert illum_frame.brightness_mean == 128.5
+    assert illum_frame.light_source_change is False
+
+
+def test_moving_object_frame_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import MovingObjectFrame
+    
+    obj_frame = MovingObjectFrame(
+        frame_index=15,
+        timestamp=2500.0,
+        detected_objects=3,
+        detection_confidence=0.92,
+        consistency_score=0.88,
+        fusion_quality_score=0.85
+    )
+    
+    assert obj_frame.frame_index == 15
+    assert obj_frame.detected_objects == 3
+    assert obj_frame.detection_confidence == 0.92
+    assert obj_frame.fusion_quality_score == 0.85
+
+
+def test_calibration_quality_validator_initialization():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import CalibrationQualityValidator
+    
+    validator = CalibrationQualityValidator(
+        output_dir="reports/test_fusion",
+        config={"edge_threshold": 0.7}
+    )
+    
+    assert validator.output_dir.name == "test_fusion"
+    assert validator.config["edge_threshold"] == 0.7
+
+
+def test_temporal_score_computation():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_temporal_score
+    import numpy as np
+    
+    # Create regular timestamps (10 Hz, 100ms intervals)
+    timestamps = np.arange(0, 1000, 100).astype('datetime64[ns]')
+    score = compute_temporal_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+    assert score > 0.8
+
+
+def test_temporal_score_irregular_timestamps():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_temporal_score
+    import numpy as np
+    
+    # Create very irregular timestamps with extreme gaps
+    timestamps = np.array([0, 100, 200, 2000, 2100], dtype='datetime64[ns]')
+    score = compute_temporal_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+    assert score < 0.9
+
+
+def test_anomaly_score_computation():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_anomaly_score
+    import numpy as np
+    
+    # Create timestamps with few anomalies
+    timestamps = np.arange(0, 1000, 100).astype('datetime64[ns]')
+    score = compute_anomaly_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+    assert score > 0.9
+
+
+def test_anomaly_score_with_outliers():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_anomaly_score
+    import numpy as np
+    
+    # Create timestamps with obvious outliers
+    base = np.arange(0, 1000, 100)
+    base[5] += 5000  # Large gap at index 5
+    timestamps = base.astype('datetime64[ns]')
+    score = compute_anomaly_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+
+
+def test_completeness_metrics_full_sequence():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    import numpy as np
+    
+    timestamps = np.arange(0, 1000, 100).astype('datetime64[ns]')
+    metrics = compute_completeness_metrics(timestamps, max_frames_in_sequence=10)
+    
+    assert isinstance(metrics, dict)
+    assert "message_availability" in metrics
+    assert "dropout_rate" in metrics
+    assert metrics["message_availability"] == 1.0
+
+
+def test_completeness_metrics_partial_sequence():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    import numpy as np
+    
+    # Only 5 frames out of possible 10
+    timestamps = np.arange(0, 500, 100).astype('datetime64[ns]')
+    metrics = compute_completeness_metrics(timestamps, max_frames_in_sequence=10)
+    
+    assert isinstance(metrics, dict)
+    assert metrics["message_availability"] == 0.5
+
+
+def test_curation_recommendation_creation():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting.curation import CurationRecommendation
+    
+    rec = CurationRecommendation(
+        sequence="test_sequence",
+        severity="high",
+        category="temporal",
+        message="Poor temporal regularity",
+        metric_value=0.45,
+        threshold=0.6,
+        action="review"
+    )
+    
+    assert rec.sequence == "test_sequence"
+    assert rec.severity == "high"
+    assert rec.action == "review"
+    assert rec.metric_value < rec.threshold
