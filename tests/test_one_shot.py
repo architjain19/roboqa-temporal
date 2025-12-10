@@ -273,3 +273,136 @@ def test_detection_result_creation():
     assert len(result.anomalies) == 1
     assert result.health_metrics["overall_health_score"] == 0.8
     assert len(result.frame_statistics) == 1
+
+
+def test_calibration_stream_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import CalibrationStream
+    
+    stream = CalibrationStream(
+        name="camera_lidar_pair",
+        image_paths=["/fake/img1.png", "/fake/img2.png"],
+        pointcloud_paths=["/fake/pc1.bin", "/fake/pc2.bin"],
+        calibration_file="/fake/calib.txt",
+        camera_id="cam_02",
+        lidar_id="velodyne"
+    )
+    
+    assert stream.name == "camera_lidar_pair"
+    assert len(stream.image_paths) == 2
+    assert len(stream.pointcloud_paths) == 2
+    assert stream.camera_id == "cam_02"
+
+
+def test_calibration_pair_result_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import CalibrationPairResult
+    
+    result = CalibrationPairResult(
+        geom_edge_score=0.85,
+        mutual_information=0.75,
+        contrastive_score=0.80,
+        pass_geom_edge=True,
+        pass_mi=True,
+        pass_contrastive=True,
+        overall_pass=True,
+        details={"frames_analyzed": 10}
+    )
+    
+    assert result.geom_edge_score == 0.85
+    assert result.overall_pass is True
+    assert result.details["frames_analyzed"] == 10
+
+
+def test_projection_error_frame_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import ProjectionErrorFrame
+    
+    error_frame = ProjectionErrorFrame(
+        frame_index=5,
+        timestamp=1500.0,
+        reprojection_error=2.5,
+        max_error_point=(100.0, 200.0),
+        projected_points_count=150,
+        error_trend="increasing"
+    )
+    
+    assert error_frame.frame_index == 5
+    assert error_frame.reprojection_error == 2.5
+    assert error_frame.error_trend == "increasing"
+    assert error_frame.projected_points_count == 150
+
+
+def test_illumination_frame_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import IlluminationFrame
+    
+    illum_frame = IlluminationFrame(
+        frame_index=10,
+        timestamp=2000.0,
+        brightness_mean=128.5,
+        brightness_std=45.2,
+        contrast=0.65,
+        scene_change_score=0.3,
+        light_source_change=False
+    )
+    
+    assert illum_frame.frame_index == 10
+    assert illum_frame.brightness_mean == 128.5
+    assert illum_frame.light_source_change is False
+
+
+def test_moving_object_frame_creation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import MovingObjectFrame
+    
+    obj_frame = MovingObjectFrame(
+        frame_index=15,
+        timestamp=2500.0,
+        detected_objects=3,
+        detection_confidence=0.92,
+        consistency_score=0.88,
+        fusion_quality_score=0.85
+    )
+    
+    assert obj_frame.frame_index == 15
+    assert obj_frame.detected_objects == 3
+    assert obj_frame.detection_confidence == 0.92
+    assert obj_frame.fusion_quality_score == 0.85
+
+
+def test_calibration_quality_validator_initialization():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: one-shot test
+    """
+    from roboqa_temporal.fusion import CalibrationQualityValidator
+    
+    validator = CalibrationQualityValidator(
+        output_dir="reports/test_fusion",
+        config={"edge_threshold": 0.7}
+    )
+    
+    assert validator.output_dir.name == "test_fusion"
+    assert validator.config["edge_threshold"] == 0.7

@@ -371,3 +371,263 @@ def test_anomaly_with_max_severity():
     )
     
     assert anomaly.severity == 1.0
+
+
+def test_calibration_stream_with_empty_paths():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import CalibrationStream
+    
+    stream = CalibrationStream(
+        name="empty_stream",
+        image_paths=[],
+        pointcloud_paths=[],
+        calibration_file="/fake/calib.txt",
+        camera_id="cam_00",
+        lidar_id="velodyne"
+    )
+    
+    assert len(stream.image_paths) == 0
+    assert len(stream.pointcloud_paths) == 0
+
+
+def test_calibration_stream_with_mismatched_counts():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import CalibrationStream
+    
+    # Different number of images and point clouds
+    stream = CalibrationStream(
+        name="mismatched_stream",
+        image_paths=["/fake/img1.png", "/fake/img2.png", "/fake/img3.png"],
+        pointcloud_paths=["/fake/pc1.bin", "/fake/pc2.bin"],
+        calibration_file="/fake/calib.txt",
+        camera_id="cam_01",
+        lidar_id="velodyne"
+    )
+    
+    assert len(stream.image_paths) == 3
+    assert len(stream.pointcloud_paths) == 2
+
+
+def test_projection_error_frame_with_zero_error():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import ProjectionErrorFrame
+    
+    error_frame = ProjectionErrorFrame(
+        frame_index=0,
+        timestamp=1000.0,
+        reprojection_error=0.0,
+        projected_points_count=0
+    )
+    
+    assert error_frame.reprojection_error == 0.0
+    assert error_frame.projected_points_count == 0
+
+
+def test_projection_error_frame_with_extreme_error():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import ProjectionErrorFrame
+    
+    error_frame = ProjectionErrorFrame(
+        frame_index=0,
+        timestamp=1000.0,
+        reprojection_error=999999.9,
+        max_error_point=(1e6, 1e6),
+        projected_points_count=1
+    )
+    
+    assert error_frame.reprojection_error > 1000.0
+    assert error_frame.max_error_point[0] == 1e6
+
+
+def test_illumination_frame_with_zero_brightness():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import IlluminationFrame
+    
+    illum_frame = IlluminationFrame(
+        frame_index=0,
+        timestamp=1000.0,
+        brightness_mean=0.0,
+        brightness_std=0.0,
+        contrast=0.0,
+        scene_change_score=0.0,
+        light_source_change=False
+    )
+    
+    assert illum_frame.brightness_mean == 0.0
+    assert illum_frame.contrast == 0.0
+
+
+def test_illumination_frame_with_max_brightness():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import IlluminationFrame
+    
+    illum_frame = IlluminationFrame(
+        frame_index=0,
+        timestamp=1000.0,
+        brightness_mean=255.0,
+        brightness_std=0.0,
+        contrast=1.0,
+        scene_change_score=1.0,
+        light_source_change=True
+    )
+    
+    assert illum_frame.brightness_mean == 255.0
+    assert illum_frame.scene_change_score == 1.0
+
+
+def test_moving_object_frame_with_no_objects():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import MovingObjectFrame
+    
+    obj_frame = MovingObjectFrame(
+        frame_index=0,
+        timestamp=1000.0,
+        detected_objects=0,
+        detection_confidence=0.0,
+        consistency_score=0.0,
+        fusion_quality_score=0.0
+    )
+    
+    assert obj_frame.detected_objects == 0
+    assert obj_frame.detection_confidence == 0.0
+
+
+def test_moving_object_frame_with_max_confidence():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import MovingObjectFrame
+    
+    obj_frame = MovingObjectFrame(
+        frame_index=0,
+        timestamp=1000.0,
+        detected_objects=100,
+        detection_confidence=1.0,
+        consistency_score=1.0,
+        fusion_quality_score=1.0
+    )
+    
+    assert obj_frame.detected_objects == 100
+    assert obj_frame.detection_confidence == 1.0
+    assert obj_frame.fusion_quality_score == 1.0
+
+
+def test_calibration_pair_result_all_fail():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import CalibrationPairResult
+    
+    result = CalibrationPairResult(
+        geom_edge_score=0.1,
+        mutual_information=0.2,
+        contrastive_score=0.15,
+        pass_geom_edge=False,
+        pass_mi=False,
+        pass_contrastive=False,
+        overall_pass=False,
+        details={"reason": "Poor calibration"}
+    )
+    
+    assert result.overall_pass is False
+    assert not result.pass_geom_edge
+    assert not result.pass_mi
+    assert not result.pass_contrastive
+
+
+def test_calibration_pair_result_all_perfect():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import CalibrationPairResult
+    
+    result = CalibrationPairResult(
+        geom_edge_score=1.0,
+        mutual_information=1.0,
+        contrastive_score=1.0,
+        pass_geom_edge=True,
+        pass_mi=True,
+        pass_contrastive=True,
+        overall_pass=True,
+        details={"quality": "perfect"}
+    )
+    
+    assert result.overall_pass is True
+    assert result.geom_edge_score == 1.0
+    assert result.mutual_information == 1.0
+
+
+def test_calibration_quality_validator_with_empty_config():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import CalibrationQualityValidator
+    
+    validator = CalibrationQualityValidator(
+        output_dir="reports/empty_config",
+        config={}
+    )
+    
+    assert validator.config == {}
+    assert validator.output_dir.exists()
+
+
+def test_calibration_quality_report_with_empty_lists():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: edge test
+    """
+    from roboqa_temporal.fusion import CalibrationQualityReport
+    
+    report = CalibrationQualityReport(
+        dataset_name="empty_dataset",
+        metrics={},
+        pair_results={},
+        projection_errors=[],
+        illumination_changes=[],
+        moving_objects=[],
+        recommendations=[],
+        parameter_file=None
+    )
+    
+    assert len(report.projection_errors) == 0
+    assert len(report.illumination_changes) == 0
+    assert len(report.moving_objects) == 0
+    assert report.parameter_file is None
