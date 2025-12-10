@@ -582,3 +582,135 @@ def test_pattern_fusion_quality_report_generation():
     assert len(report.pair_results) == 1
     assert len(report.projection_errors) == 5
     assert len(report.recommendations) == 1
+
+
+def test_pattern_health_scoring_workflow():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: pattern test
+    """
+    from roboqa_temporal.health_reporting import (
+        compute_temporal_score,
+        compute_anomaly_score,
+        compute_completeness_metrics
+    )
+    import numpy as np
+    
+    # Create sensor timestamps
+    camera_ts = np.arange(0, 2000, 100).astype('datetime64[ns]')
+    lidar_ts = np.arange(0, 2000, 100).astype('datetime64[ns]')
+    imu_ts = np.arange(0, 2000, 10).astype('datetime64[ns]')
+    
+    # Compute temporal health
+    camera_temporal = compute_temporal_score(camera_ts)
+    lidar_temporal = compute_temporal_score(lidar_ts)
+    imu_temporal = compute_temporal_score(imu_ts)
+    
+    # Compute anomaly detection
+    camera_anomaly = compute_anomaly_score(camera_ts)
+    lidar_anomaly = compute_anomaly_score(lidar_ts)
+    
+    # Verify scores
+    assert 0.0 <= camera_temporal <= 1.0
+    assert 0.0 <= lidar_temporal <= 1.0
+    assert 0.0 <= camera_anomaly <= 1.0
+    assert camera_temporal > 0.8
+
+
+def test_pattern_completeness_tracking():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: pattern test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    import numpy as np
+    
+    # Simulate multiple sequences with varying completeness
+    sequences_data = []
+    for seq_id in range(3):
+        # Each sequence has different frame counts
+        max_frames = 100
+        n_frames = 100 - (seq_id * 20)
+        timestamps = np.arange(0, n_frames * 100, 100).astype('datetime64[ns]')
+        metrics = compute_completeness_metrics(timestamps, max_frames)
+        sequences_data.append(metrics)
+    
+    assert len(sequences_data) == 3
+    assert sequences_data[0]["message_availability"] == 1.0
+    assert sequences_data[1]["message_availability"] == 0.8
+    assert sequences_data[2]["message_availability"] == 0.6
+
+
+def test_pattern_curation_recommendation_generation():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: pattern test
+    """
+    from roboqa_temporal.health_reporting import generate_curation_recommendations
+    import pandas as pd
+    
+    # Create sample per-sequence data
+    df_per_sequence = pd.DataFrame({
+        "sequence": ["seq_1", "seq_2", "seq_3"],
+        "temporal_score": [0.9, 0.5, 0.2],
+        "anomaly_score": [0.95, 0.7, 0.3],
+        "dim_timeliness": [0.92, 0.6, 0.25],
+        "dim_completeness": [0.95, 0.85, 0.4],
+        "overall_quality_score": [0.92, 0.65, 0.3],
+    })
+    
+    df_per_sensor = pd.DataFrame()
+    
+    # Generate recommendations
+    recs = generate_curation_recommendations(
+        df_per_sensor,
+        df_per_sequence,
+        temporal_threshold=0.6,
+        completeness_threshold=0.6,
+        quality_threshold=0.5
+    )
+    
+    assert isinstance(recs, list)
+    assert len(recs) > 0
+    seq_names = [r.sequence for r in recs]
+    assert "seq_2" in seq_names or "seq_3" in seq_names
+
+
+def test_pattern_multi_sensor_health_assessment():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: pattern test
+    """
+    from roboqa_temporal.health_reporting import (
+        compute_temporal_score,
+        compute_completeness_metrics
+    )
+    import numpy as np
+    
+    # Simulate multi-sensor sequence
+    sensors = {
+        "camera_left": np.arange(0, 2000, 100).astype('datetime64[ns]'),
+        "camera_right": np.arange(0, 2000, 100).astype('datetime64[ns]'),
+        "lidar": np.arange(0, 2000, 100).astype('datetime64[ns]'),
+        "imu": np.arange(0, 2000, 10).astype('datetime64[ns]'),
+    }
+    
+    results = {}
+    max_frames = 20
+    
+    for sensor_name, timestamps in sensors.items():
+        temporal = compute_temporal_score(timestamps)
+        completeness = compute_completeness_metrics(timestamps, max_frames)
+        results[sensor_name] = {
+            "temporal": temporal,
+            "completeness": completeness["message_availability"]
+        }
+    
+    assert len(results) == 4
+    for sensor_name, metrics in results.items():
+        assert 0.0 <= metrics["temporal"] <= 1.0
+        assert 0.0 <= metrics["completeness"] <= 1.0

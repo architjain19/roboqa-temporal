@@ -406,3 +406,135 @@ def test_calibration_quality_validator_initialization():
     
     assert validator.output_dir.name == "test_fusion"
     assert validator.config["edge_threshold"] == 0.7
+
+
+def test_temporal_score_computation():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_temporal_score
+    import numpy as np
+    
+    # Create regular timestamps (10 Hz, 100ms intervals)
+    timestamps = np.arange(0, 1000, 100).astype('datetime64[ns]')
+    score = compute_temporal_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+    assert score > 0.8
+
+
+def test_temporal_score_irregular_timestamps():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_temporal_score
+    import numpy as np
+    
+    # Create very irregular timestamps with extreme gaps
+    timestamps = np.array([0, 100, 200, 2000, 2100], dtype='datetime64[ns]')
+    score = compute_temporal_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+    assert score < 0.9
+
+
+def test_anomaly_score_computation():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_anomaly_score
+    import numpy as np
+    
+    # Create timestamps with few anomalies
+    timestamps = np.arange(0, 1000, 100).astype('datetime64[ns]')
+    score = compute_anomaly_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+    assert score > 0.9
+
+
+def test_anomaly_score_with_outliers():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_anomaly_score
+    import numpy as np
+    
+    # Create timestamps with obvious outliers
+    base = np.arange(0, 1000, 100)
+    base[5] += 5000  # Large gap at index 5
+    timestamps = base.astype('datetime64[ns]')
+    score = compute_anomaly_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+
+
+def test_completeness_metrics_full_sequence():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    import numpy as np
+    
+    timestamps = np.arange(0, 1000, 100).astype('datetime64[ns]')
+    metrics = compute_completeness_metrics(timestamps, max_frames_in_sequence=10)
+    
+    assert isinstance(metrics, dict)
+    assert "message_availability" in metrics
+    assert "dropout_rate" in metrics
+    assert metrics["message_availability"] == 1.0
+
+
+def test_completeness_metrics_partial_sequence():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    import numpy as np
+    
+    # Only 5 frames out of possible 10
+    timestamps = np.arange(0, 500, 100).astype('datetime64[ns]')
+    metrics = compute_completeness_metrics(timestamps, max_frames_in_sequence=10)
+    
+    assert isinstance(metrics, dict)
+    assert metrics["message_availability"] == 0.5
+
+
+def test_curation_recommendation_creation():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: one-shot test
+    """
+    from roboqa_temporal.health_reporting.curation import CurationRecommendation
+    
+    rec = CurationRecommendation(
+        sequence="test_sequence",
+        severity="high",
+        category="temporal",
+        message="Poor temporal regularity",
+        metric_value=0.45,
+        threshold=0.6,
+        action="review"
+    )
+    
+    assert rec.sequence == "test_sequence"
+    assert rec.severity == "high"
+    assert rec.action == "review"
+    assert rec.metric_value < rec.threshold

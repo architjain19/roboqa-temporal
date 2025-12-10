@@ -204,3 +204,75 @@ def test_moving_object_frame_importable():
     """
     from roboqa_temporal.fusion import MovingObjectFrame
     assert MovingObjectFrame is not None
+
+
+def test_health_check_importable():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.health_reporting import run_health_check
+    assert run_health_check is not None
+
+
+def test_temporal_score_computation_importable():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.health_reporting import compute_temporal_score
+    assert compute_temporal_score is not None
+
+
+def test_anomaly_score_computation_importable():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.health_reporting import compute_anomaly_score
+    assert compute_anomaly_score is not None
+
+
+def test_completeness_metrics_computation_importable():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    assert compute_completeness_metrics is not None
+
+
+def test_curation_recommendation_importable():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.health_reporting.curation import CurationRecommendation
+    assert CurationRecommendation is not None
+
+
+def test_curation_recommendations_function_importable():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.health_reporting import generate_curation_recommendations
+    assert generate_curation_recommendations is not None
+
+
+def test_export_functions_importable():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.health_reporting import export_csv, export_json, export_yaml
+    assert export_csv is not None
+    assert export_json is not None
+    assert export_yaml is not None
