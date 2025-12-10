@@ -631,3 +631,176 @@ def test_calibration_quality_report_with_empty_lists():
     assert len(report.illumination_changes) == 0
     assert len(report.moving_objects) == 0
     assert report.parameter_file is None
+
+
+def test_temporal_score_with_single_timestamp():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting import compute_temporal_score
+    import numpy as np
+    
+    # Single timestamp should return 0
+    timestamps = np.array([1000], dtype='datetime64[ns]')
+    score = compute_temporal_score(timestamps)
+    
+    assert score == 0.0
+
+
+def test_temporal_score_with_empty_timestamps():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting import compute_temporal_score
+    import numpy as np
+    
+    # Empty array should return 0
+    timestamps = np.array([], dtype='datetime64[ns]')
+    score = compute_temporal_score(timestamps)
+    
+    assert score == 0.0
+
+
+def test_temporal_score_with_identical_timestamps():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting import compute_temporal_score
+    import numpy as np
+    
+    # All identical timestamps (zero intervals)
+    timestamps = np.array([1000, 1000, 1000], dtype='datetime64[ns]')
+    score = compute_temporal_score(timestamps)
+    
+    assert isinstance(score, float)
+    assert 0.0 <= score <= 1.0
+
+
+def test_anomaly_score_with_single_timestamp():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting import compute_anomaly_score
+    import numpy as np
+    
+    timestamps = np.array([1000], dtype='datetime64[ns]')
+    score = compute_anomaly_score(timestamps)
+    
+    assert score == 0.0
+
+
+def test_anomaly_score_with_empty_timestamps():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting import compute_anomaly_score
+    import numpy as np
+    
+    timestamps = np.array([], dtype='datetime64[ns]')
+    score = compute_anomaly_score(timestamps)
+    
+    assert score == 0.0
+
+
+def test_completeness_metrics_with_empty_timestamps():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    import numpy as np
+    
+    timestamps = np.array([], dtype='datetime64[ns]')
+    metrics = compute_completeness_metrics(timestamps, max_frames_in_sequence=10)
+    
+    assert isinstance(metrics, dict)
+    assert metrics["message_availability"] == 0.0
+
+
+def test_completeness_metrics_with_zero_max_frames():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    import numpy as np
+    
+    timestamps = np.arange(0, 1000, 100).astype('datetime64[ns]')
+    metrics = compute_completeness_metrics(timestamps, max_frames_in_sequence=0)
+    
+    assert isinstance(metrics, dict)
+    assert metrics["message_availability"] == 0.0
+
+
+def test_completeness_metrics_exceeding_max_frames():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting import compute_completeness_metrics
+    import numpy as np
+    
+    timestamps = np.arange(0, 2000, 100).astype('datetime64[ns]')  # 20 frames
+    metrics = compute_completeness_metrics(timestamps, max_frames_in_sequence=10)
+    
+    assert isinstance(metrics, dict)
+    assert metrics["message_availability"] >= 1.0
+
+
+def test_curation_recommendation_with_critical_severity():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting.curation import CurationRecommendation
+    
+    rec = CurationRecommendation(
+        sequence="bad_sequence",
+        severity="critical",
+        category="quality",
+        message="Dataset unusable",
+        metric_value=0.1,
+        threshold=0.5,
+        action="exclude"
+    )
+    
+    assert rec.severity == "critical"
+    assert rec.action == "exclude"
+    assert rec.metric_value < rec.threshold
+
+
+def test_curation_recommendation_with_low_severity():
+    """
+    author: sayali
+    reviewer: xinxin
+    category: edge test
+    """
+    from roboqa_temporal.health_reporting.curation import CurationRecommendation
+    
+    rec = CurationRecommendation(
+        sequence="ok_sequence",
+        severity="low",
+        category="completeness",
+        message="Minor data loss",
+        metric_value=0.58,
+        threshold=0.6,
+        action="monitor"
+    )
+    
+    assert rec.severity == "low"
+    assert rec.action == "monitor"
+    assert rec.metric_value < rec.threshold
