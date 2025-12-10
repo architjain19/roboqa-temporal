@@ -396,3 +396,189 @@ def test_pattern_full_pipeline():
     assert len(processed) > 0
     assert isinstance(detection_result, DetectionResult)
     assert report is not None
+
+
+def test_pattern_fusion_quality_assessment():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: pattern test
+    """
+    from roboqa_temporal.fusion import (
+        CalibrationQualityValidator,
+        CalibrationStream,
+        CalibrationPairResult
+    )
+    
+    # Create a validator instance
+    validator = CalibrationQualityValidator(
+        output_dir="reports/test_fusion",
+        config={"edge_threshold": 0.7}
+    )
+    
+    assert validator is not None
+    assert validator.output_dir.exists()
+
+
+def test_pattern_calibration_stream_workflow():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: pattern test
+    """
+    from roboqa_temporal.fusion import CalibrationStream
+    
+    # Create multiple calibration streams
+    streams = []
+    for i in range(3):
+        stream = CalibrationStream(
+            name=f"pair_{i}",
+            image_paths=[f"/fake/img_{i}_{j}.png" for j in range(5)],
+            pointcloud_paths=[f"/fake/pc_{i}_{j}.bin" for j in range(5)],
+            calibration_file=f"/fake/calib_{i}.txt",
+            camera_id=f"cam_0{i}",
+            lidar_id="velodyne"
+        )
+        streams.append(stream)
+    
+    # Verify streams
+    assert len(streams) == 3
+    for stream in streams:
+        assert len(stream.image_paths) == 5
+        assert len(stream.pointcloud_paths) == 5
+
+
+def test_pattern_projection_error_tracking():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: pattern test
+    """
+    from roboqa_temporal.fusion import ProjectionErrorFrame
+    
+    # Simulate projection errors over time
+    error_frames = []
+    for i in range(10):
+        # Simulate increasing error trend
+        error = 1.0 + i * 0.5
+        error_frame = ProjectionErrorFrame(
+            frame_index=i,
+            timestamp=1000.0 + i * 100,
+            reprojection_error=error,
+            max_error_point=(float(i * 10), float(i * 20)),
+            projected_points_count=100 - i * 5,
+            error_trend="increasing" if i > 5 else "stable"
+        )
+        error_frames.append(error_frame)
+    
+    assert len(error_frames) == 10
+    assert error_frames[0].reprojection_error < error_frames[-1].reprojection_error
+    assert sum(1 for f in error_frames if f.error_trend == "increasing") > 0
+
+
+def test_pattern_illumination_detection():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: pattern test
+    """
+    from roboqa_temporal.fusion import IlluminationFrame
+    
+    # Simulate illumination changes
+    illum_frames = []
+    for i in range(8):
+        brightness = 100.0 + np.random.randn() * 20.0
+        illum_frame = IlluminationFrame(
+            frame_index=i,
+            timestamp=1000.0 + i * 100,
+            brightness_mean=brightness,
+            brightness_std=15.0 + np.random.randn() * 5.0,
+            contrast=0.6 + np.random.rand() * 0.2,
+            scene_change_score=0.1 if i < 4 else 0.8,
+            light_source_change=(i == 4)
+        )
+        illum_frames.append(illum_frame)
+    
+    assert len(illum_frames) == 8
+    assert sum(1 for f in illum_frames if f.light_source_change) == 1
+    assert any(f.scene_change_score > 0.5 for f in illum_frames)
+
+
+def test_pattern_moving_object_consistency():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: pattern test
+    """
+    from roboqa_temporal.fusion import MovingObjectFrame
+    
+    # Simulate moving object detection
+    obj_frames = []
+    for i in range(12):
+        obj_frame = MovingObjectFrame(
+            frame_index=i,
+            timestamp=1000.0 + i * 100,
+            detected_objects=2 + (i % 3),
+            detection_confidence=0.8 + np.random.rand() * 0.15,
+            consistency_score=0.85 if i < 6 else 0.70,
+            fusion_quality_score=0.80 + np.random.rand() * 0.1
+        )
+        obj_frames.append(obj_frame)
+    
+    assert len(obj_frames) == 12
+    avg_confidence = np.mean([f.detection_confidence for f in obj_frames])
+    assert 0.8 <= avg_confidence <= 1.0
+    assert all(f.detected_objects > 0 for f in obj_frames)
+
+
+def test_pattern_fusion_quality_report_generation():
+    """
+    author: dharinesh
+    reviewer: architjain
+    category: pattern test
+    """
+    from roboqa_temporal.fusion import (
+        CalibrationQualityReport,
+        CalibrationPairResult,
+        ProjectionErrorFrame
+    )
+    
+    # Create sample pair result
+    pair_result = CalibrationPairResult(
+        geom_edge_score=0.82,
+        mutual_information=0.78,
+        contrastive_score=0.80,
+        pass_geom_edge=True,
+        pass_mi=True,
+        pass_contrastive=True,
+        overall_pass=True,
+        details={"frames": 10}
+    )
+    
+    # Create sample projection errors
+    proj_errors = [
+        ProjectionErrorFrame(
+            frame_index=i,
+            timestamp=1000.0 + i * 100,
+            reprojection_error=2.0 + i * 0.1,
+            projected_points_count=100
+        )
+        for i in range(5)
+    ]
+    
+    # Create report
+    report = CalibrationQualityReport(
+        dataset_name="test_dataset",
+        metrics={"overall_score": 0.85},
+        pair_results={"cam_lidar": pair_result},
+        projection_errors=proj_errors,
+        illumination_changes=[],
+        moving_objects=[],
+        recommendations=["Calibration is stable"],
+        parameter_file="/fake/params.yaml"
+    )
+    
+    assert report.dataset_name == "test_dataset"
+    assert len(report.pair_results) == 1
+    assert len(report.projection_errors) == 5
+    assert len(report.recommendations) == 1

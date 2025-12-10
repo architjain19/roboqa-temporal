@@ -122,3 +122,85 @@ def test_pairwise_drift_result_importable():
     """
     from roboqa_temporal.synchronization import PairwiseDriftResult
     assert PairwiseDriftResult is not None
+
+
+def test_calibration_quality_validator_importable():
+    """
+    author: dharinesh
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.fusion import CalibrationQualityValidator
+    assert CalibrationQualityValidator is not None
+
+
+def test_calibration_quality_validator_instantiation():
+    """
+    author: dharinesh
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.fusion import CalibrationQualityValidator
+    validator = CalibrationQualityValidator(output_dir="reports/test_fusion")
+    assert validator is not None
+    assert hasattr(validator, 'analyze_dataset')
+
+
+def test_calibration_stream_importable():
+    """
+    author: dharinesh
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.fusion import CalibrationStream
+    assert CalibrationStream is not None
+
+
+def test_calibration_quality_report_importable():
+    """
+    author: dharinesh
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.fusion import CalibrationQualityReport
+    assert CalibrationQualityReport is not None
+
+
+def test_calibration_pair_result_importable():
+    """
+    author: dharinesh
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.fusion import CalibrationPairResult
+    assert CalibrationPairResult is not None
+
+
+def test_projection_error_frame_importable():
+    """
+    author: dharinesh
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.fusion import ProjectionErrorFrame
+    assert ProjectionErrorFrame is not None
+
+
+def test_illumination_frame_importable():
+    """
+    author: dharinesh
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.fusion import IlluminationFrame
+    assert IlluminationFrame is not None
+
+
+def test_moving_object_frame_importable():
+    """
+    author: dharinesh
+    reviewer: xinxin
+    category: smoke test
+    """
+    from roboqa_temporal.fusion import MovingObjectFrame
+    assert MovingObjectFrame is not None
