@@ -1,0 +1,88 @@
+[MASTER]
+# Specify a configuration file.
+load-plugins=
+
+[MESSAGES CONTROL]
+# C0111: Missing module/function/class docstring
+# C0103: Invalid constant name
+# R0913: Too many arguments
+# R0914: Too many local variables
+# R0904: Too many public methods
+# W0212: Access to protected member
+# W0611: Unused import
+disable=missing-module-docstring,
+        missing-function-docstring,
+        missing-class-docstring,
+        invalid-name,
+        too-many-arguments,
+        too-many-locals,
+        too-many-public-methods,
+        protected-access,
+        unused-import,
+        too-few-public-methods,
+        duplicate-code,
+        line-too-long,
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=120
+
+# Regexp for a line that is allowed to be longer than the limit.
+ignore-long-lines=^\s*(# )?<?https?://\S+>?$
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=7
+
+# Maximum number of attributes for a class
+max-attributes=10
+
+# Maximum number of locals in a function
+max-locals=20
+
+[MISCELLANEOUS]
+# List of note tags to take in consideration, separated by a comma.
+notes=FIXME,TODO,XXX
+
+[VARIABLE NAMES]
+# Argument naming style
+argument-naming-style=snake_case
+
+# Attribute naming style
+attr-naming-style=snake_case
+
+# Class naming style
+class-naming-style=PascalCase
+
+# Constant naming style
+const-naming-style=UPPER_CASE
+
+# Function naming style
+function-naming-style=snake_case
+
+# Method naming style
+method-naming-style=snake_case
+
+# Module naming style
+module-naming-style=snake_case
+
+# Variable naming style
+variable-naming-style=snake_case
+
+[LOGGING]
+# Format of logging format string.
+logging-format-style=new
+
+[BASIC]
+# Good variable names which should always be accepted, separated by a comma
+good-names=i,j,k,ex,Run,_,x,y,z,df,ax
+
+# Include a hint for the correct naming format with invalid-name
+include-naming-hint=yes
+
+[SIMILARITIES]
+# Ignore imports when computing similarities.
+ignore-imports=yes
+
+# Minimum lines number d a similarity to trigger off a duplication warning
+min-similarity-lines=10
