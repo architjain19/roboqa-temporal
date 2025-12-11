@@ -41,8 +41,6 @@ roboqa-temporal/
 ├── tests/                              # Unit tests
 │   ├── __init__.py
 │   ├── conftest.py
-│   ├── test_bag_loader.py
-│   ├── test_detection_pipeline.py
 │   ├── test_edge.py
 │   ├── test_one_shot.py
 │   ├── test_pattern.py
@@ -350,8 +348,6 @@ Quantifies smoothness and consistency in spatio-temporal evolution:
 ## Testing
 
 Tests are organized by functionality:
-- `test_bag_loader.py`: ROS2 bag loading tests
-- `test_detection_pipeline.py`: Anomaly detection pipeline tests
 - `test_edge.py`: Edge case handling
 - `test_one_shot.py`: Single-frame analysis
 - `test_pattern.py`: Pattern detection tests

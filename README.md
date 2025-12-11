@@ -42,7 +42,7 @@ python3 -m venv venv
 # Activate the virtual environment
 source venv/bin/activate
 
-# 5. Source ROS
+# Source ROS
 source /opt/ros/humble/setup.bash
 
 # Install dependencies
@@ -247,8 +247,6 @@ roboqa anomaly path/to/bag_file.db3 --voxel-size 0.1 --max-points-for-outliers 5
     │           └── temporal_validator.py
     └── tests
         ├── conftest.py
-        ├── test_bag_loader.py
-        ├── test_detection_pipeline.py
         ├── test_edge.py
         ├── test_one_shot.py
         ├── test_pattern.py
