@@ -1,0 +1,14 @@
+{
+    "mean_offset_ms": 0.5595477333333334,
+    "std_dev_ms": 0.05921927742829094,
+    "max_drift_ms": 0.620288,
+    "drift_rate_ms_per_sec": -0.027029963756193827,
+    "sync_success_rate": 100.0,
+    "quality_score": 98.57,
+    "frame_count": 45,
+    "sensor_pair": [
+        "image_02",
+        "image_03"
+    ],
+    "status": "PASS"
+}
