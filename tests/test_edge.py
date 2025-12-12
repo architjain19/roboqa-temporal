@@ -59,19 +59,13 @@ def test_detector_with_all_detectors_disabled():
     reviewer: dharinesh
     category: edge test
     """
-    detector = AnomalyDetector(
-        enable_density_detection=False,
-        enable_spatial_detection=False,
-        enable_ghost_detection=False,
-        enable_temporal_detection=False,
-    )
-    
-    points = np.random.rand(50, 3)
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="test", points=points)
-    result = detector.detect([frame])
-    
-    assert isinstance(result, DetectionResult)
-    assert len(result.detector_results) == 0
+    with pytest.raises(ValueError, match="No detectors enabled"):
+        AnomalyDetector(
+            enable_density_detection=False,
+            enable_spatial_detection=False,
+            enable_ghost_detection=False,
+            enable_temporal_detection=False,
+        )
 
 
 def test_detector_with_extreme_thresholds():
