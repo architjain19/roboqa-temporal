@@ -128,6 +128,11 @@ class AnomalyDetector:
                 threshold=temporal_threshold
             )
 
+        if not self.detectors:
+            raise ValueError(
+                "No detectors enabled. Enable at least one anomaly detector or adjust configuration."
+            )
+
     def detect(self, frames: List[PointCloudFrame]) -> DetectionResult:
         """
         Run anomaly detection on a sequence of frames.
