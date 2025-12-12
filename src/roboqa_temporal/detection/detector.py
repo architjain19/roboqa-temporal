@@ -31,6 +31,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from roboqa_temporal.loader.bag_loader import PointCloudFrame
+from roboqa_temporal.constants import MIN_SEVERITY, MAX_SEVERITY
 from roboqa_temporal.detection.detectors import (
     DensityDropDetector,
     SpatialDiscontinuityDetector,
@@ -53,6 +54,12 @@ class Anomaly:
     severity: float  # 0.0 to 1.0
     description: str
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not (MIN_SEVERITY <= self.severity <= MAX_SEVERITY):
+            raise ValueError(
+                f"severity {self.severity} outside bounds [{MIN_SEVERITY}, {MAX_SEVERITY}]"
+            )
 
 
 @dataclass
@@ -119,6 +126,11 @@ class AnomalyDetector:
         if enable_temporal_detection:
             self.detectors["temporal"] = TemporalConsistencyDetector(
                 threshold=temporal_threshold
+            )
+
+        if not self.detectors:
+            raise ValueError(
+                "No detectors enabled. Enable at least one anomaly detector or adjust configuration."
             )
 
     def detect(self, frames: List[PointCloudFrame]) -> DetectionResult:
