@@ -60,3 +60,7 @@ output_report/
 .coverage*data/sequences/
 scripts/
 
+
+# Python cache
+__pycache__/
+*.pyc
