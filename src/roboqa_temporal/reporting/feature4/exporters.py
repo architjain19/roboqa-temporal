@@ -1,3 +1,22 @@
+"""
+################################################################
+File: exporters.py
+Created: 2025-12-07
+Created by: Sayali Nehul
+Last Modified: 2025-12-07
+Last Modified by: Sayali Nehul
+#################################################################
+Data export utilities for Dataset Quality Scoring &
+Cross-Benchmarking (Feature 4). Exports a Pandas DataFrame 
+containing dataset quality metrics into CSV or JSON format. 
+The module ensures that output directories exist and produces 
+clean, analysis-ready files for downstream visualizers,dashboards,
+benchmarking tools, or external analytics workflows.
+Supported formats:
+- CSV  : comma-separated plain text table
+- JSON : list-of-records encoding, readable by most data systems
+################################################################
+"""
 from pathlib import Path
 import pandas as pd
 
