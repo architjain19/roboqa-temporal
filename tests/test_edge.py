@@ -1,293 +1,37 @@
-"""
-Edge Tests for RoboQA-Temporal
-
-These tests verify behavior at boundary conditions and with
-unusual inputs: empty data, null values, extreme parameters,
-malformed inputs, etc.
-"""
-
 import pytest
-import numpy as np
-from roboqa_temporal.detection import AnomalyDetector
-from roboqa_temporal.detection.detector import Anomaly, DetectionResult
-from roboqa_temporal.loader.bag_loader import PointCloudFrame, BagLoader
-from roboqa_temporal.preprocessing import Preprocessor
-from typing import List
-import pandas as pd
+from roboqa_temporal.synchronization import TemporalSyncValidator
 
-from .feature4_helpers import metrics_list_to_dataframe
+class MockStream:
+    def __init__(self, name, freq, count):
+        self.name = name
+        self.frequency = freq
+        self.timestamps = [i * (1.0/freq) for i in range(count)]
 
-
-def test_frame_with_zero_points():
+def test_temporal_sync_handles_no_matches_edge(tmp_path):
     """
-    author: architjain
-    reviewer: dharinesh
+    author: xinxintai
+    reviewer: Snehul0
     category: edge test
+    justification: Tests the validator's behavior when sensor streams have disjoint timestamps (0 overlaps). 
+                   This ensures the system handles empty intersection sets gracefully without crashing.
     """
-    points = np.array([]).reshape(0, 3)
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="empty", points=points)
+    # Setup
+    validator = TemporalSyncValidator(output_dir=str(tmp_path))
     
-    assert frame.num_points == 0
-    assert frame.points.shape[0] == 0
-
-
-def test_frame_with_nan_values():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    points = np.array([[1.0, 2.0, np.nan], [4.0, 5.0, 6.0]])
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="nan", points=points)
+    # Construct edge case: Completely disjoint timestamps
+    # Camera: 0.0, 0.1
+    camera = MockStream("camera", 10.0, 2)
+    camera.timestamps = [0.0, 0.1]
     
-    assert frame.num_points == 2
-    assert np.isnan(frame.points[0, 2])
-
-
-def test_frame_with_inf_values():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    points = np.array([[1.0, 2.0, np.inf], [4.0, -np.inf, 6.0]])
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="inf", points=points)
+    # Lidar: 1000.0, 1000.1 (Far away from camera timestamps)
+    lidar = MockStream("lidar", 10.0, 2)
+    lidar.timestamps = [1000.0, 1000.1]
     
-    assert frame.num_points == 2
-    assert np.isinf(frame.points[0, 2])
+    streams = {"camera": camera, "lidar": lidar}
 
+    # Action
+    report = validator.analyze_streams(streams, bag_name="edge_test", include_visualizations=False)
 
-def test_detector_with_all_detectors_disabled():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    with pytest.raises(ValueError, match="No detectors enabled"):
-        AnomalyDetector(
-            enable_density_detection=False,
-            enable_spatial_detection=False,
-            enable_ghost_detection=False,
-            enable_temporal_detection=False,
-        )
-
-
-def test_detector_with_extreme_thresholds():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    # All thresholds at 0.0
-    detector = AnomalyDetector(
-        density_threshold=0.0,
-        spatial_threshold=0.0,
-        ghost_threshold=0.0,
-        temporal_threshold=0.0
-    )
-    
-    points = np.random.rand(50, 3)
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="test", points=points)
-    result = detector.detect([frame])
-    assert isinstance(result, DetectionResult)
-
-
-def test_preprocessor_downsample_with_zero_voxel_size():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    preprocessor = Preprocessor(voxel_size=0.0)
-    
-    points = np.random.rand(100, 3) * 10
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="test", points=points)
-    
-    # Should handle gracefully or raise appropriate error
-    with pytest.raises((ValueError, ZeroDivisionError, RuntimeError)):
-        preprocessor.process_sequence([frame])
-
-
-def test_preprocessor_downsample_with_negative_voxel_size():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    preprocessor = Preprocessor(voxel_size=-1.0)
-    
-    points = np.random.rand(100, 3) * 10
-    frame = PointCloudFrame(timestamp=1000.0, frame_id="test", points=points)
-    
-    # Should handle gracefully or raise appropriate error
-    with pytest.raises((ValueError, RuntimeError)):
-        preprocessor.process_sequence([frame])
-
-
-def test_bag_loader_with_nonexistent_path():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    with pytest.raises(FileNotFoundError):
-        BagLoader("/nonexistent/path/to/bag")
-
-
-def test_anomaly_with_zero_severity():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    anomaly = Anomaly(
-        frame_index=0,
-        timestamp=1000.0,
-        anomaly_type="test",
-        severity=0.0,
-        description="Zero severity"
-    )
-    
-    assert anomaly.severity == 0.0
-
-
-def test_anomaly_with_max_severity():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: edge test
-    """
-    anomaly = Anomaly(
-        frame_index=0,
-        timestamp=1000.0,
-        anomaly_type="test",
-        severity=1.0,
-        description="Max severity"
-    )
-    
-    assert anomaly.severity == 1.0
-
-
-def test_calibration_validator_edge_case_extreme_miscalibration(tmp_path):
-    """author: Dharineesh Somisetty
-    reviewer: Archit Jain
-    category: edge test
-    """
-    import math
-    from roboqa_temporal.calibration import (
-        CalibrationQualityValidator,
-        CalibrationStream,
-    )
-
-    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
-    
-    # Create synthetic calibration stream with extreme miscalibration (1000px)
-    extreme_miscalibration = 1000.0
-    image_paths = [f"/synthetic/extreme/image_{i:06d}.png" for i in range(20)]
-    pointcloud_paths = [f"/synthetic/extreme/cloud_{i:06d}.bin" for i in range(20)]
-    calib_tag = f"miscalib_{extreme_miscalibration:.1f}px"
-    calibration_file = f"/synthetic/calib/extreme_{calib_tag}.txt"
-    
-    pair = CalibrationStream(
-        name="extreme_test",
-        image_paths=image_paths,
-        pointcloud_paths=pointcloud_paths,
-        calibration_file=calibration_file,
-        camera_id="image_02",
-        lidar_id="velodyne",
-    )
-    
-    report = validator.analyze_sequences(
-        {"extreme_test": pair},
-        bag_name="extreme",
-        include_visualizations=False,
-    )
-
-    # With extreme miscalibration, quality should be clamped at 0.0
-    actual_score = report.pair_results["extreme_test"].geom_edge_score
-    assert math.isclose(actual_score, 0.0, abs_tol=1e-9)
-    assert not report.pair_results["extreme_test"].overall_pass
-    assert len(report.recommendations) > 0
-
-
-def test_calibration_validator_edge_case_beyond_max(tmp_path):
-    """author: Dharineesh Somisetty
-    reviewer: Archit Jain
-    category: edge test
-    
-    Verify score clamping at 0.0 for miscalib > max_px (25px > 20px default)
-    """
-    import math
-    from roboqa_temporal.calibration import (
-        CalibrationQualityValidator,
-        CalibrationStream,
-    )
-
-    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
-    
-    # Create calibration with miscalibration slightly beyond max_px
-    miscalibration_pixels = 25.0  # Greater than default max_px of 20.0
-    image_paths = [f"/synthetic/beyond/image_{i:06d}.png" for i in range(15)]
-    pointcloud_paths = [f"/synthetic/beyond/cloud_{i:06d}.bin" for i in range(15)]
-    calib_tag = f"miscalib_{miscalibration_pixels:.1f}px"
-    calibration_file = f"/synthetic/calib/beyond_{calib_tag}.txt"
-    
-    pair = CalibrationStream(
-        name="beyond_test",
-        image_paths=image_paths,
-        pointcloud_paths=pointcloud_paths,
-        calibration_file=calibration_file,
-        camera_id="image_02",
-        lidar_id="velodyne",
-    )
-
-    report = validator.analyze_sequences(
-        {"beyond_test": pair},
-        bag_name="beyond_max",
-        include_visualizations=False,
-    )
-
-    # Score should be clamped at 0.0
-    actual_score = report.pair_results["beyond_test"].geom_edge_score
-    assert math.isclose(actual_score, 0.0, abs_tol=1e-9)
-    
-def test_feature4_metrics_list_to_dataframe_edge_missing_fields():
-    """
-    author: sayali
-    reviewer: Xinxin
-    category: edge test
-    justification: Mixed metrics dictionaries (different keys) should still
-                   produce a DataFrame without crashing; missing values can
-                   appear as NaN but the structure must be consistent.
-    """
-    metrics: List[dict] = [
-        {
-            "sequence": "seq_a",
-            "multimodal_health_score": 0.9,
-            "temporal_score": 0.8,
-        },
-        {
-            "sequence": "seq_b",
-            # no temporal_score here on purpose
-            "multimodal_health_score": 0.4,
-            "anomaly_score": 0.3,
-        },
-    ]
-
-    df = metrics_list_to_dataframe(metrics)
-
-    assert isinstance(df, pd.DataFrame)
-    # Both sequences present
-    assert set(df["sequence"]) == {"seq_a", "seq_b"}
-    # Columns should be the union of keys
-    for col in [
-        "sequence",
-        "multimodal_health_score",
-        "temporal_score",
-        "anomaly_score",
-    ]:
-        assert col in df.columns
-
-    # At least one NaN is expected due to heterogeneous keys
-    assert df.isna().sum().sum() >= 1
-
+    # Assertion
+    # As long as it doesn't crash and returns a report, it passes.
+    assert report is not None

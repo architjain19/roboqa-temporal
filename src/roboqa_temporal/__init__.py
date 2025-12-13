@@ -55,6 +55,10 @@ try:
 except ImportError:  # pragma: no cover
     ReportGenerator = None  # type: ignore
 
-from roboqa_temporal.synchronization import TemporalSyncValidator
+try:
+    from roboqa_temporal.synchronization import TemporalSyncValidator
+    __all__.append("TemporalSyncValidator")
+except ImportError:
+    pass
 
 __all__.append("TemporalSyncValidator")

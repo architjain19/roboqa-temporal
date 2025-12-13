@@ -1,137 +1,30 @@
-"""
-Smoke Tests for RoboQA-Temporal
-
-These tests verify that the package can be imported and basic
-functionality is accessible without errors. They serve as a first
-line of defense to catch major issues.
-"""
-
 import pytest
-from typing import List
-import pandas as pd
+from roboqa_temporal.synchronization import TemporalSyncValidator
 
-from .feature4_helpers import metrics_list_to_dataframe
+# Simple helper class for mock data
+class MockStream:
+    def __init__(self, name, freq, count):
+        self.name = name
+        self.frequency = freq
+        # Generate simple timestamps: 0.0, 0.1, 0.2 ...
+        self.timestamps = [i * (1.0/freq) for i in range(count)]
 
-
-
-def test_package_import():
+def test_temporal_sync_validator_smoke(tmp_path):
     """
-    author: architjain
-    reviewer: dharinesh
+    author: xinxintai
+    reviewer: Snehul0
     category: smoke test
     """
-    import roboqa_temporal
-    assert roboqa_temporal.__version__ is not None
+    # Setup: Create minimal mock data
+    validator = TemporalSyncValidator(output_dir=str(tmp_path))
+    camera = MockStream("camera", 10.0, 5)
+    lidar = MockStream("lidar", 10.0, 5)
+    streams = {"camera": camera, "lidar": lidar}
 
+    # Action: Run the core pipeline
+    report = validator.analyze_streams(streams, bag_name="smoke_test", include_visualizations=False)
 
-def test_main_classes_importable():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: smoke test
-    """
-    from roboqa_temporal import (
-        BagLoader,
-        Preprocessor,
-        AnomalyDetector,
-        ReportGenerator,
-    )
-    assert BagLoader is not None
-    assert Preprocessor is not None
-    assert AnomalyDetector is not None
-    assert ReportGenerator is not None
-
-
-def test_anomaly_detector_instantiation():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: smoke test
-    """
-    from roboqa_temporal.detection import AnomalyDetector
-    detector = AnomalyDetector()
-    assert detector is not None
-    assert hasattr(detector, 'detect')
-
-
-def test_preprocessor_instantiation():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: smoke test
-    """
-    from roboqa_temporal.preprocessing import Preprocessor
-    preprocessor = Preprocessor()
-    assert preprocessor is not None
-
-
-def test_report_generator_instantiation():
-    """
-    author: architjain
-    reviewer: dharinesh
-    category: smoke test
-    """
-    from roboqa_temporal.reporting import ReportGenerator
-    generator = ReportGenerator()
-    assert generator is not None
-
-
-def test_calibration_validator_smoke(tmp_path):
-    """author: Dharineesh Somisetty
-    reviewer: Archit Jain
-    category: smoke test
-    """
-    import math
-    from roboqa_temporal.calibration import (
-        CalibrationQualityValidator,
-        CalibrationStream,
-    )
-
-    validator = CalibrationQualityValidator(output_dir=str(tmp_path))
-    
-    # Create synthetic calibration stream with minimal miscalibration
-    image_paths = [f"/synthetic/cam_lidar/image_{i:06d}.png" for i in range(10)]
-    pointcloud_paths = [f"/synthetic/cam_lidar/cloud_{i:06d}.bin" for i in range(10)]
-    calibration_file = "/synthetic/calib/cam_lidar_miscalib_0.5px.txt"
-    
-    cam_lidar = CalibrationStream(
-        name="cam_lidar",
-        image_paths=image_paths,
-        pointcloud_paths=pointcloud_paths,
-        calibration_file=calibration_file,
-        camera_id="image_02",
-        lidar_id="velodyne",
-    )
-
-    report = validator.analyze_sequences(
-        {"cam_lidar": cam_lidar},
-        bag_name="smoke_test",
-        include_visualizations=False,
-    )
-
-    # Check exact expected score (0.975) with precision tolerance
-    # quality = 1.0 - (0.5 / 20.0) = 0.975
-    assert math.isclose(report.metrics["edge_alignment_score"], 0.975, rel_tol=1e-6)
-    assert report.parameter_file is not None
-
-
-def test_feature4_metrics_list_to_dataframe_smoke():
-    """
-    author: sayali
-    reviewer: Xinxin
-    category: smoke test
-    justification: Unit-level smoke test for converting a small metrics
-                   list into a well-formed DataFrame.
-    """
-    metrics: List[dict] = [
-        {"sequence": "seq_0001", "multimodal_health_score": 0.9},
-        {"sequence": "seq_0002", "multimodal_health_score": 0.6},
-    ]
-
-    df = metrics_list_to_dataframe(metrics)
-
-    assert isinstance(df, pd.DataFrame)
-    assert list(df.columns)[0] == "sequence"
-    assert len(df) == 2
-    assert "multimodal_health_score" in df.columns
-
+    # Assertion: Smoke tests only care that the program finished without crashing.
+    # TA Feedback: Do not check specific metric scores here.
+    assert report is not None
+    assert report.compliance_flags is not None

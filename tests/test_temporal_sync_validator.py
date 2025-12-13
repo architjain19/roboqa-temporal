@@ -70,7 +70,7 @@ def test_temporal_sync_parameter_file(tmp_path):
 def test_temporal_sync_report_structure_smoke(tmp_path):
     """
     author: xinxintai
-    reviewer: buddy_placeholder
+    reviewer: Snehu10
     category: smoke test
     """
     validator = TemporalSyncValidator(
@@ -96,7 +96,7 @@ def test_temporal_sync_report_structure_smoke(tmp_path):
 def test_temporal_sync_frequency_violation_one_shot(tmp_path):
     """
     author: xinxintai
-    reviewer: buddy_placeholder
+    reviewer: Snehu10
     category: one-shot test
     """
     validator = TemporalSyncValidator(output_dir=str(tmp_path))
@@ -114,7 +114,7 @@ def test_temporal_sync_frequency_violation_one_shot(tmp_path):
 def test_temporal_sync_handles_no_matches_edge(tmp_path):
     """
     author: xinxintai
-    reviewer: buddy_placeholder
+    reviewer: Snehu10
     category: edge test
     """
     validator = TemporalSyncValidator(output_dir=str(tmp_path))
@@ -133,7 +133,7 @@ def test_temporal_sync_handles_no_matches_edge(tmp_path):
 def test_auto_detect_topics_pattern_detection():
     """
     author: xinxintai
-    reviewer: buddy_placeholder
+    reviewer: Snehu10
     category: pattern test
     justification: verifies naming/type patterns trigger automatic topic detection
     """
