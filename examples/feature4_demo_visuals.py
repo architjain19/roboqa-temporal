@@ -1,20 +1,17 @@
 """
 ################################################################
-File: roboqa_temporal/examples/feature4_kitti_visual_demo.py
-Author: Sayali Nehul
+File: feature4_demo_visuals.py
+Created: 2025-12-07
+Created by: Sayali Nehul (snehul@uw.edu)
+Last Modified: 2025-12-07
+Last Modified by: Sayali Nehul (snehul@uw.edu)
 ################################################################
-
-Dataset Quality Scoring &Cross-Benchmarking (Feature 4)
-Demo Visuals — KITTI Camera + LiDAR Viewer.
-
-Generates simple visual previews for KITTI sequences:
-- Random sample camera images (image_00–image_03)
-- A 3D point cloud from a velodyne_points .bin scan
-
-Outputs:
-- camera_samples_<seq>.png
-- lidar_pointcloud_<seq>.png
-
+Dataset Quality Scoring & Cross-Benchmarking (Feature 4)
+KITTI Visual Demo — Camera + LiDAR Quick Viewer.
+This module generates simple visual previews for KITTI sequences,
+including random sampled camera images from image_00 to image_03
+and 3D visualization of a Velodyne LiDAR .bin scan.Outputs produced 
+for each sequence is camera_samples_<seq>.png lidar_pointcloud_<seq>.png
 ################################################################
 """
 import numpy as np
