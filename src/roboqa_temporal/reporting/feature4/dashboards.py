@@ -1,3 +1,23 @@
+"""
+################################################################
+File: dashboards.py
+Created: 2025-12-07
+Created by: Sayali Nehul
+Last Modified: 2025-12-07
+Last Modified by: Sayali Nehul
+#################################################################
+4-Panel Interactive Quality Dashboard Generator.Builds a 
+2×2 Plotly dashboard Dataset Quality Scoring & Cross-Benchmarking
+used by (Feature 4) to visualize dataset quality across multiple 
+dimensions. The dashboard includes:
+(1) Dataset-level radar chart of core quality dimensions
+(2) Per-sequence overall quality score bar chart
+(3) Cross-benchmark percentile comparison
+(4) Sensor-fusion quality metric summary
+This tool supports dataset triage, curation prioritization,
+and ISO-8000-aligned quality reporting for multi-sensor systems.
+################################################################
+"""
 from __future__ import annotations
 
 from typing import Optional
