@@ -2,9 +2,9 @@
 ################################################################
 File: dashboards.py
 Created: 2025-12-07
-Created by: Sayali Nehul
+Created by: Sayali Nehul (snehul@uw.edu)
 Last Modified: 2025-12-07
-Last Modified by: Sayali Nehul
+Last Modified by: Sayali Nehul (snehul@uw.edu)
 #################################################################
 4-Panel Interactive Quality Dashboard Generator.Builds a 
 2×2 Plotly dashboard Dataset Quality Scoring & Cross-Benchmarking
