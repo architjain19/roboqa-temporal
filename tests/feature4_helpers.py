@@ -1,16 +1,24 @@
 """
-Test-only helper module for Feature 4 (dataset quality reporting).
-
-This module dynamically loads the Feature 4 reporting helpers directly
-from their source files under:
-
-    src/roboqa_temporal/reporting/feature4/
-
-We do this to:
-- avoid importing the full roboqa_temporal package (which may pull in ROS2),
-- keep Feature 4 tests independent of other features,
-- ensure we always test the latest source files on disk.
+################################################################
+File: feature4_helpers.py
+Created: 2025-12-07
+Created by: Sayali Nehul (snehul@uw.edu)
+Last Modified: 2025-12-07
+Last Modified by: Sayali Nehul (snehul@uw.edu)
+################################################################
+Test-only helper module for Dataset Quality Scoring & Cross-
+Benchmarking (Feature 4). This module dynamically loads the 
+Feature 4 reporting helpers directly from their source files under
+src/roboqa_temporal/reporting/feature4/
+This approach is used to:
+- avoid importing the full roboqa_temporal package, which may
+  transitively pull in ROS2 dependencies,
+- keep Feature 4 tests independent from other features,
+- ensure tests always execute against the latest source files
+  present on disk rather than installed package versions.
+################################################################
 """
+
 
 from __future__ import annotations
 
