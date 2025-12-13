@@ -23,7 +23,7 @@ import json
 import os
 from pathlib import Path
 
-from roboqa_temporal.synchronization.temporal_validator import TemporalSyncValidator
+from roboqa_temporal.synchronization.temporal_validator import TemporalSyncValidator                     # Import temporal synchronization validator (Feature 1) (already implemented earlier)
 
 
 def run_and_export(
@@ -31,26 +31,26 @@ def run_and_export(
     output_dir: str,
     max_messages_per_topic: int | None,
 ) -> str:
-    bag_path_obj = Path(bag_path)
-    if not bag_path_obj.exists():
+    bag_path_obj = Path(bag_path)                                                                        # Convert bag into a Path object for safety & convenience
+    if not bag_path_obj.exists():                                                                        # Safety check — ensures the bag actually exists
         raise FileNotFoundError(f"Bag path does not exist: {bag_path}")
 
     bag_name = bag_path_obj.stem
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)                                                               # Ensure output folder exists
 
-    validator = TemporalSyncValidator(output_dir=output_dir)
-    report = validator.validate(
+    validator = TemporalSyncValidator(output_dir=output_dir)                                             # Initialize the Feature 1 temporal sync validator
+    report = validator.validate(                                                                         # Run the validator on the bag
         str(bag_path_obj),
         max_messages_per_topic=max_messages_per_topic,
         include_visualizations=True,
     )
 
-    payload = {
+    payload = {                                                                                           # Build a clean JSON payload that Dataset Quality Scoring and Cross- Benchmarking (Feature 4) will later read
         "sequence": bag_name,
         "metrics": report.metrics,
     }
 
-    out_path = Path(output_dir) / f"{bag_name}_temporal_metrics.json"
+    out_path = Path(output_dir) / f"{bag_name}_temporal_metrics.json"                                      # Final output file location
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, sort_keys=True)
 
@@ -58,10 +58,10 @@ def run_and_export(
     return str(out_path)
 
 
-def _parse_args() -> argparse.Namespace:
+def _parse_args() -> argparse.Namespace:                                                                   # CLI parser for running this file as a script
     p = argparse.ArgumentParser(description="Export Feature 1 temporal metrics for Feature 4")
-    p.add_argument("--bag", required=True, help="Path to ROS2 MCAP bag")
-    p.add_argument(
+    p.add_argument("--bag", required=True, help="Path to ROS2 MCAP bag")                                   # Path to input ROS2 bag file (.mcap)
+    p.add_argument(                                                                                        # Directory where output JSON will be saved
         "--output-dir",
         default="reports/temporal_sync",
         help="Directory where <bag>_temporal_metrics.json will be stored",
@@ -75,6 +75,6 @@ def _parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":                                                                               # Run parser and execute the export function
     args = _parse_args()
-    run_and_export(args.bag, args.output_dir, args.max_messages_per_topic)
+    run_and_export(args.bag, args.output_dir, args.max_messages_per_topic)rgs.bag, args.output_dir, args.max_messages_per_topic)
