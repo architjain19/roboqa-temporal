@@ -1,3 +1,21 @@
+"""
+################################################################
+File: export_temporal_metrics.py
+Created: 2025-12-08
+Created by: Sayali Nehul (snehul@uw.edu)
+Last Modified: 2025-12-08
+Last Modified by: Sayali Nehul (snehul@uw.edu)
+################################################################
+
+Exports temporal synchronization metrics (Feature 1) for ROS2 MCAP
+bags in a JSON format compatible with Dataset Quality Scoring &
+Cross-Benchmarking (Feature 4). This script runs
+the TemporalSyncValidator, generates per-topic alignment metrics,
+and saves optional visualizations in the specified output folder.
+
+################################################################
+"""
+
 from __future__ import annotations
 
 import argparse
