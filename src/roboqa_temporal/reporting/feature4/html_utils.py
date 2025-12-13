@@ -1,3 +1,19 @@
+"""
+################################################################
+File: html_utils.py
+Created: 2025-12-07
+Created by: Sayali Nehul (snehul@uw.edu)
+Last Modified: 2025-12-07
+Last Modified by: Sayali Nehul (snehul@uw.edu)
+#################################################################
+HTML Export Utility for Dataset Quality Scoring &Cross-Benchmarking
+(Feature 4) Dashboards.This module provides`save_dashboard_html()`, 
+which exports a PlotlyFigure as a standalone, browser-viewable HTML 
+file. The output isportable, interactive, and suitable for dataset
+reviews, academic reports, and reproducible analytics pipelines. 
+Plotly JS is loaded via CDN to minimize file size.
+################################################################
+"""
 from pathlib import Path
 from plotly.io import write_html
 
